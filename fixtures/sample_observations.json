@@ -1,0 +1,170 @@
+[
+  {
+    "geo_id": "480359506002",
+    "field_id": "B01003e1",
+    "vintage": 2019,
+    "value": 1068.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B01003e1",
+    "vintage": 2020,
+    "value": 1220.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B01003e1",
+    "vintage": 2019,
+    "value": 1688.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B01003e1",
+    "vintage": 2020,
+    "value": 1485.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B15003e1",
+    "vintage": 2019,
+    "value": 812.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B15003e1",
+    "vintage": 2020,
+    "value": 870.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B15003e1",
+    "vintage": 2019,
+    "value": 1173.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B15003e1",
+    "vintage": 2020,
+    "value": 1010.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B23025e1",
+    "vintage": 2019,
+    "value": 903.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B23025e1",
+    "vintage": 2020,
+    "value": 894.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B23025e1",
+    "vintage": 2019,
+    "value": 1297.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B23025e1",
+    "vintage": 2020,
+    "value": 1163.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B19001e1",
+    "vintage": 2019,
+    "value": 409.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B19001e1",
+    "vintage": 2020,
+    "value": 424.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B19001e1",
+    "vintage": 2019,
+    "value": 592.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B19001e1",
+    "vintage": 2020,
+    "value": 548.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B19013e1",
+    "vintage": 2019,
+    "value": 53080.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B19013e1",
+    "vintage": 2020,
+    "value": 70613.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B19013e1",
+    "vintage": 2019,
+    "value": 74125.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B19013e1",
+    "vintage": 2020,
+    "value": 64583.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B01001e1",
+    "vintage": 2019,
+    "value": 1068.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B01001e1",
+    "vintage": 2020,
+    "value": 1220.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B01001e1",
+    "vintage": 2019,
+    "value": 1688.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B01001e1",
+    "vintage": 2020,
+    "value": 1485.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B01002e1",
+    "vintage": 2019,
+    "value": 55.0
+  },
+  {
+    "geo_id": "480359506002",
+    "field_id": "B01002e1",
+    "vintage": 2020,
+    "value": 48.2
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B01002e1",
+    "vintage": 2019,
+    "value": 36.0
+  },
+  {
+    "geo_id": "060371011101",
+    "field_id": "B01002e1",
+    "vintage": 2020,
+    "value": 40.3
+  }
+]

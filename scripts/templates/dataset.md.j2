@@ -84,8 +84,8 @@ Not present in share.
 | Nation | Derived | SUM of all block groups |
 | State | Derived | SUM by state FIPS prefix |
 | County | Derived | SUM by county FIPS prefix; names from metadata |
-| Place | Derived | SUM via metadata mapping, if present in share |
-| CBSA | Derived | {{ "Supported if metadata mapping confirmed" if result.cbsa_mapping_present else "Not confirmed in share" }} |
+| Place | Derived | Not supported in SafeGraph share; see S10 |
+| CBSA | Derived | Not supported in SafeGraph share; see S10 |
 | Tract, street | Unsupported | Declared out of scope |
 
 ## ACS vintages
@@ -102,7 +102,9 @@ No vintages identified from table names.
 
 ## Variable catalog
 
-To be populated by `scripts/snapshot_catalog.py` in S1. Field descriptions metadata contains {{ result.field_descriptions.distinct_table_id_count if result.field_descriptions and result.field_descriptions.distinct_table_id_count is not none else "unknown" }} distinct table_id values.
+<!-- catalog-snapshot-begin -->
+To be populated by `scripts/snapshot_catalog.py` in S1.
+<!-- catalog-snapshot-end -->
 
 ## Aggregation policy
 

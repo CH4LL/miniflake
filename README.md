@@ -6,7 +6,7 @@ Author: Jerzy Marondel.
 
 ## Status
 
-S0 complete: project skeleton, configuration, health endpoint, schema discovery, container image, CI, and Cloud Run hello-world deploy. Later stages are tracked in [docs/roadmap.md](docs/roadmap.md).
+S0 complete: project skeleton, configuration, health endpoint, schema discovery, container image, CI, and Cloud Run hello-world deploy. S1 complete: typed census data access with Snowflake and fake repositories, SQL templates, rollup policy, catalog snapshot fixtures, and contract tests. Later stages are tracked in [docs/roadmap.md](docs/roadmap.md).
 
 ## Evaluating the demo
 

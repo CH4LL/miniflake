@@ -69,10 +69,8 @@ items:
   - id: L06
     category: lookup
     question: How many people live in the city of Denver?
-    expected: answer
-    provenance: { series: B01003, level: Place, geo_name_contains: Denver, aggregation_method: sum }
-    value_check: { tolerance_pct: 0.5 }
-    notes: Count rollup via place metadata mapping if available; otherwise unanswerable with explanation is acceptable.
+    expected: unanswerable
+    notes: Place level not supported in SafeGraph share (no place mapping); deferred to S10 public-data supplement.
     status: active
 
   - id: L07
@@ -85,7 +83,7 @@ items:
   # ---------- Direct lookups (medians at block group — native grain) ----------
   - id: L08
     category: lookup
-    question: What is the median household income in census block group 481131210001?
+    question: What is the median household income in census block group 480359506002?
     expected: answer
     provenance: { series: B19013, level: BlockGroup, aggregation_method: direct }
     value_check: { tolerance_pct: 1 }
@@ -94,7 +92,7 @@ items:
 
   - id: L09
     category: lookup
-    question: What is the median age in census block group 060371011001?
+    question: What is the median age in census block group 060371011101?
     expected: answer
     provenance: { series: B01002, level: BlockGroup, aggregation_method: direct }
     value_check: { tolerance_pct: 1 }
@@ -204,8 +202,8 @@ items:
   - id: AG01
     category: ambiguous_geography
     question: What is the population of Springfield?
-    expected: clarify
-    notes: Multiple places named Springfield; clarification lists candidates with states.
+    expected: unanswerable
+    notes: Place-level ambiguity not supported without place catalog; deferred to S10. County/state clarification covered by AG02 and AG03.
     status: active
 
   - id: AG02
@@ -315,7 +313,7 @@ items:
     category: unsupported_level
     question: How many people live on Main Street in Boise?
     expected: unanswerable
-    notes: Street-level data does not exist; answer may offer Boise place-level or a county population count as nearest supported figure.
+    notes: Street-level data does not exist; answer may offer Ada County population as nearest supported figure.
     status: active
 
   # ---------- Aggregation traps ----------
@@ -421,7 +419,7 @@ items:
     category: meta
     question: What kind of questions can you answer?
     expected: answer
-    notes: Describes SafeGraph ACS block-group data, count rollups to state/county, median/rate at block group only; no numbers required.
+    notes: Describes SafeGraph ACS block-group data, count rollups to state/county only, median/rate at block group; no numbers required.
     status: active
 
   - id: M02

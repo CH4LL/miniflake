@@ -1,0 +1,582 @@
+{
+  "nation": {
+    "geo_id": "US",
+    "name": "United States",
+    "level": "Nation",
+    "parent_geo_id": null,
+    "state_abbreviation": null
+  },
+  "states": [
+    {
+      "geo_id": "01",
+      "name": "Alabama",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "AL"
+    },
+    {
+      "geo_id": "02",
+      "name": "Alaska",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "AK"
+    },
+    {
+      "geo_id": "04",
+      "name": "Arizona",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "AZ"
+    },
+    {
+      "geo_id": "05",
+      "name": "Arkansas",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "AR"
+    },
+    {
+      "geo_id": "06",
+      "name": "California",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "CA"
+    },
+    {
+      "geo_id": "08",
+      "name": "Colorado",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "CO"
+    },
+    {
+      "geo_id": "09",
+      "name": "Connecticut",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "CT"
+    },
+    {
+      "geo_id": "10",
+      "name": "Delaware",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "DE"
+    },
+    {
+      "geo_id": "11",
+      "name": "District of Columbia",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "DC"
+    },
+    {
+      "geo_id": "12",
+      "name": "Florida",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "FL"
+    },
+    {
+      "geo_id": "13",
+      "name": "Georgia",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "GA"
+    },
+    {
+      "geo_id": "15",
+      "name": "Hawaii",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "HI"
+    },
+    {
+      "geo_id": "16",
+      "name": "Idaho",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "ID"
+    },
+    {
+      "geo_id": "17",
+      "name": "Illinois",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "IL"
+    },
+    {
+      "geo_id": "18",
+      "name": "Indiana",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "IN"
+    },
+    {
+      "geo_id": "19",
+      "name": "Iowa",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "IA"
+    },
+    {
+      "geo_id": "20",
+      "name": "Kansas",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "KS"
+    },
+    {
+      "geo_id": "21",
+      "name": "Kentucky",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "KY"
+    },
+    {
+      "geo_id": "22",
+      "name": "Louisiana",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "LA"
+    },
+    {
+      "geo_id": "23",
+      "name": "Maine",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "ME"
+    },
+    {
+      "geo_id": "24",
+      "name": "Maryland",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MD"
+    },
+    {
+      "geo_id": "25",
+      "name": "Massachusetts",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MA"
+    },
+    {
+      "geo_id": "26",
+      "name": "Michigan",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MI"
+    },
+    {
+      "geo_id": "27",
+      "name": "Minnesota",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MN"
+    },
+    {
+      "geo_id": "28",
+      "name": "Mississippi",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MS"
+    },
+    {
+      "geo_id": "29",
+      "name": "Missouri",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MO"
+    },
+    {
+      "geo_id": "30",
+      "name": "Montana",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "MT"
+    },
+    {
+      "geo_id": "31",
+      "name": "Nebraska",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NE"
+    },
+    {
+      "geo_id": "32",
+      "name": "Nevada",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NV"
+    },
+    {
+      "geo_id": "33",
+      "name": "New Hampshire",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NH"
+    },
+    {
+      "geo_id": "34",
+      "name": "New Jersey",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NJ"
+    },
+    {
+      "geo_id": "35",
+      "name": "New Mexico",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NM"
+    },
+    {
+      "geo_id": "36",
+      "name": "New York",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NY"
+    },
+    {
+      "geo_id": "37",
+      "name": "North Carolina",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "NC"
+    },
+    {
+      "geo_id": "38",
+      "name": "North Dakota",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "ND"
+    },
+    {
+      "geo_id": "39",
+      "name": "Ohio",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "OH"
+    },
+    {
+      "geo_id": "40",
+      "name": "Oklahoma",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "OK"
+    },
+    {
+      "geo_id": "41",
+      "name": "Oregon",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "OR"
+    },
+    {
+      "geo_id": "42",
+      "name": "Pennsylvania",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "PA"
+    },
+    {
+      "geo_id": "44",
+      "name": "Rhode Island",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "RI"
+    },
+    {
+      "geo_id": "45",
+      "name": "South Carolina",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "SC"
+    },
+    {
+      "geo_id": "46",
+      "name": "South Dakota",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "SD"
+    },
+    {
+      "geo_id": "47",
+      "name": "Tennessee",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "TN"
+    },
+    {
+      "geo_id": "48",
+      "name": "Texas",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "TX"
+    },
+    {
+      "geo_id": "49",
+      "name": "Utah",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "UT"
+    },
+    {
+      "geo_id": "50",
+      "name": "Vermont",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "VT"
+    },
+    {
+      "geo_id": "51",
+      "name": "Virginia",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "VA"
+    },
+    {
+      "geo_id": "53",
+      "name": "Washington",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "WA"
+    },
+    {
+      "geo_id": "54",
+      "name": "West Virginia",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "WV"
+    },
+    {
+      "geo_id": "55",
+      "name": "Wisconsin",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "WI"
+    },
+    {
+      "geo_id": "56",
+      "name": "Wyoming",
+      "level": "State",
+      "parent_geo_id": null,
+      "state_abbreviation": "WY"
+    }
+  ],
+  "counties": [
+    {
+      "geo_id": "45001",
+      "name": "Abbeville County",
+      "level": "County",
+      "parent_geo_id": "45",
+      "state_abbreviation": "SC"
+    },
+    {
+      "geo_id": "51001",
+      "name": "Accomack County",
+      "level": "County",
+      "parent_geo_id": "51",
+      "state_abbreviation": "VA"
+    },
+    {
+      "geo_id": "16001",
+      "name": "Ada County",
+      "level": "County",
+      "parent_geo_id": "16",
+      "state_abbreviation": "ID"
+    },
+    {
+      "geo_id": "19001",
+      "name": "Adair County",
+      "level": "County",
+      "parent_geo_id": "19",
+      "state_abbreviation": "IA"
+    },
+    {
+      "geo_id": "40001",
+      "name": "Adair County",
+      "level": "County",
+      "parent_geo_id": "40",
+      "state_abbreviation": "OK"
+    },
+    {
+      "geo_id": "21001",
+      "name": "Adair County",
+      "level": "County",
+      "parent_geo_id": "21",
+      "state_abbreviation": "KY"
+    },
+    {
+      "geo_id": "29001",
+      "name": "Adair County",
+      "level": "County",
+      "parent_geo_id": "29",
+      "state_abbreviation": "MO"
+    },
+    {
+      "geo_id": "38001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "38",
+      "state_abbreviation": "ND"
+    },
+    {
+      "geo_id": "39001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "39",
+      "state_abbreviation": "OH"
+    },
+    {
+      "geo_id": "42001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "42",
+      "state_abbreviation": "PA"
+    },
+    {
+      "geo_id": "17001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "17",
+      "state_abbreviation": "IL"
+    },
+    {
+      "geo_id": "28001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "28",
+      "state_abbreviation": "MS"
+    },
+    {
+      "geo_id": "53001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "53",
+      "state_abbreviation": "WA"
+    },
+    {
+      "geo_id": "18001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "18",
+      "state_abbreviation": "IN"
+    },
+    {
+      "geo_id": "19003",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "19",
+      "state_abbreviation": "IA"
+    },
+    {
+      "geo_id": "08001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "08",
+      "state_abbreviation": "CO"
+    },
+    {
+      "geo_id": "16003",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "16",
+      "state_abbreviation": "ID"
+    },
+    {
+      "geo_id": "55001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "55",
+      "state_abbreviation": "WI"
+    },
+    {
+      "geo_id": "31001",
+      "name": "Adams County",
+      "level": "County",
+      "parent_geo_id": "31",
+      "state_abbreviation": "NE"
+    },
+    {
+      "geo_id": "50001",
+      "name": "Addison County",
+      "level": "County",
+      "parent_geo_id": "50",
+      "state_abbreviation": "VT"
+    },
+    {
+      "geo_id": "18117",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "18",
+      "state_abbreviation": "IN"
+    },
+    {
+      "geo_id": "06059",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "06",
+      "state_abbreviation": "CA"
+    },
+    {
+      "geo_id": "51137",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "51",
+      "state_abbreviation": "VA"
+    },
+    {
+      "geo_id": "37135",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "37",
+      "state_abbreviation": "NC"
+    },
+    {
+      "geo_id": "36071",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "36",
+      "state_abbreviation": "NY"
+    },
+    {
+      "geo_id": "48361",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "48",
+      "state_abbreviation": "TX"
+    },
+    {
+      "geo_id": "12095",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "12",
+      "state_abbreviation": "FL"
+    },
+    {
+      "geo_id": "50017",
+      "name": "Orange County",
+      "level": "County",
+      "parent_geo_id": "50",
+      "state_abbreviation": "VT"
+    }
+  ],
+  "block_groups": [
+    {
+      "geo_id": "480359506002",
+      "name": "480359506002",
+      "level": "BlockGroup",
+      "parent_geo_id": "48035",
+      "state_abbreviation": null
+    },
+    {
+      "geo_id": "060371011101",
+      "name": "060371011101",
+      "level": "BlockGroup",
+      "parent_geo_id": "06037",
+      "state_abbreviation": null
+    }
+  ]
+}

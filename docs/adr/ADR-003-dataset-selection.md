@@ -25,8 +25,7 @@ Use the SafeGraph listing only. The application reads ACS data at census block g
 - `Nation`: sum all block groups.
 - `State`: sum block groups sharing the state FIPS prefix.
 - `County`: sum block groups sharing the county FIPS prefix; names from metadata.
-- `Place`: sum block groups mapped to a place in the FIPS metadata table, if the mapping exists in the acquired share.
-- `CBSA`: supported only if the metadata or discovery script confirms a block-group-to-CBSA mapping; otherwise declared unsupported.
+- `Place`, `CBSA`: not supported in the SafeGraph share (no place or CBSA mapping in metadata). Deferred to optional S10 via `SNOWFLAKE_PUBLIC_DATA_FREE`.
 
 **Variable catalog:** derived from the field-descriptions metadata table, with each field tagged by `aggregation_kind` (`count`, `median`, `rate`) for rollup decisions.
 

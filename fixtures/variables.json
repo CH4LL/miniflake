@@ -1,0 +1,72 @@
+[
+  {
+    "field_id": "B01003e1",
+    "table_id": "B01003e1",
+    "series_id": "B01003",
+    "name": "TOTAL POPULATION",
+    "topic": "Population Total",
+    "aggregation_kind": "count",
+    "description": "Total Population",
+    "acs_table_name": "2020_CBG_B01"
+  },
+  {
+    "field_id": "B15003e1",
+    "table_id": "B15003e1",
+    "series_id": "B15003",
+    "name": "EDUCATIONAL ATTAINMENT FOR THE POPULATION 25 YEARS AND OVER",
+    "topic": "Educational Attainment",
+    "aggregation_kind": "count",
+    "description": "Educational Attainment For The Population 25 Years And Over",
+    "acs_table_name": "2020_CBG_B15"
+  },
+  {
+    "field_id": "B23025e1",
+    "table_id": "B23025e1",
+    "series_id": "B23025",
+    "name": "EMPLOYMENT STATUS FOR THE POPULATION 16 YEARS AND OVER",
+    "topic": "Employment and Labor Force Status",
+    "aggregation_kind": "count",
+    "description": "Employment Status For The Population 16 Years And Over",
+    "acs_table_name": "2020_CBG_B23"
+  },
+  {
+    "field_id": "B19001e1",
+    "table_id": "B19001e1",
+    "series_id": "B19001",
+    "name": "HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2020 INFLATION-ADJUSTED DOLLARS)",
+    "topic": "Income Households Families Individuals",
+    "aggregation_kind": "count",
+    "description": "Household Income In The Past 12 Months (In 2020 Inflation-Adjusted Dollars)",
+    "acs_table_name": "2020_CBG_B19"
+  },
+  {
+    "field_id": "B19013e1",
+    "table_id": "B19013e1",
+    "series_id": "B19013",
+    "name": "MEDIAN HOUSEHOLD INCOME IN THE PAST 12 MONTHS (IN 2020 INFLATION-ADJUSTED DOLLARS)",
+    "topic": "Income Households Families Individuals",
+    "aggregation_kind": "median",
+    "description": "Median Household Income In The Past 12 Months (In 2020 Inflation-Adjusted Dollars)",
+    "acs_table_name": "2020_CBG_B19"
+  },
+  {
+    "field_id": "B01001e1",
+    "table_id": "B01001e1",
+    "series_id": "B01001",
+    "name": "SEX BY AGE",
+    "topic": "Age and Sex",
+    "aggregation_kind": "count",
+    "description": "Sex By Age",
+    "acs_table_name": "2020_CBG_B01"
+  },
+  {
+    "field_id": "B01002e1",
+    "table_id": "B01002e1",
+    "series_id": "B01002",
+    "name": "MEDIAN AGE BY SEX",
+    "topic": "Age and Sex",
+    "aggregation_kind": "median",
+    "description": "Median Age By Sex",
+    "acs_table_name": "2020_CBG_B01"
+  }
+]

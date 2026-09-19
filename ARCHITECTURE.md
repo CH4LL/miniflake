@@ -2,7 +2,7 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
-**Current implementation (S0):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `scripts/discover_schema.py`, Dockerfile, CI workflow, and deploy script. All other packages in the layout below are planned for later stages.
+**Current implementation (S0–S1):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Tool, agent, conversation, guardrail, and web packages remain planned for later stages.
 
 ## Principles
 
@@ -95,7 +95,7 @@ The agent works over the [SafeGraph US Open Census listing](https://app.snowflak
 
 **Native geography level:** `BlockGroup` (12-digit FIPS).
 
-**Derived levels** (via FIPS prefix and metadata, where mapping exists): `Nation`, `State`, `County`, `Place`, and `CBSA` only if the metadata supports it.
+**Derived levels** (via FIPS prefix and metadata): `Nation`, `State`, `County`. Place and CBSA are deferred to optional S10 (public-data supplement).
 
 **Aggregation policy:**
 

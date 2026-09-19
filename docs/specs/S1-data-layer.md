@@ -21,7 +21,7 @@ Tool schemas, LLM interaction, ranking or comparison logic that is not a direct 
 
 ## Domain models (`app/data/models.py`)
 
-- `GeoLevel` enum: `BlockGroup`, `Nation`, `State`, `County`, `Place`, `CBSA` (last only if metadata supports it).
+- `GeoLevel` enum: `BlockGroup`, `Nation`, `State`, `County`. (`Place` and `CBSA` deferred to S10.)
 - `AggregationKind` enum: `count`, `median`, `rate`.
 - `AggregationMethod` enum: `direct`, `sum`.
 - `Geography`: `geo_id`, `name`, `level`, optional `parent_geo_id`, optional `state_abbreviation`.

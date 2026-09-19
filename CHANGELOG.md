@@ -4,6 +4,14 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S1: Data access layer
+- `CensusRepository` protocol with domain models, provenance, and counts-only rollup policy.
+- `SnowflakeCensusRepository` with read-only SQL guard, row caps, retry, and parametrized templates under `app/data/sql/`.
+- `FakeCensusRepository` backed by committed fixtures; shared contract tests in `tests/component/data/`.
+- Catalog snapshot script (`scripts/snapshot_catalog.py`), curated variable spec, and state FIPS name fixture.
+- Place and CBSA geography deferred to optional S10; affected eval items retargeted to `unanswerable`.
+- Live Snowflake contract and smoke tests pass with `RUN_LIVE_TESTS=1`; snapshot fixtures use block-group grain for fake rollup parity.
+
 ### S0: Foundations and walking skeleton
 - Python project skeleton with `uv`, pydantic-settings configuration, and `GET /api/health`.
 - SafeGraph schema discovery script (`scripts/discover_schema.py`) generating `docs/data/dataset.md`.

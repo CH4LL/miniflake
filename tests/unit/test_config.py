@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -75,3 +77,30 @@ def test_get_settings_is_cached(settings_env: dict[str, str]) -> None:
     second = get_settings()
     assert first is second
     get_settings.cache_clear()
+
+
+def test_data_layer_settings_defaults(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.snowflake_statement_timeout_seconds == 60
+    assert settings.snowflake_query_tag == "miniflake"
+    assert settings.snowflake_max_rows == 1000
+    assert settings.snowflake_retry_attempts == 3
+    assert settings.repository_search_limit == 25
+    assert settings.acs_vintages == [2019, 2020]
+    assert settings.nation_geo_id == "US"
+    assert settings.acs_wide_table_name(2020, "B01") == "2020_CBG_B01"
+    assert (
+        settings.metadata_field_descriptions_table(2019)
+        == "2019_METADATA_CBG_FIELD_DESCRIPTIONS"
+    )
+    assert settings.fixtures_path() == Path("fixtures")

@@ -1,0 +1,40 @@
+series:
+  - series_id: B01003
+    topic: Population
+    aggregation_kind: count
+  - series_id: B01002
+    topic: Age and Sex
+    aggregation_kind: median
+  - series_id: B01001
+    topic: Age and Sex
+    aggregation_kind: count
+  - series_id: B19013
+    topic: Income
+    aggregation_kind: median
+  - series_id: B19001
+    topic: Income
+    aggregation_kind: count
+  - series_id: B17001
+    topic: Poverty
+    aggregation_kind: rate
+  - series_id: B15003
+    topic: Education
+    aggregation_kind: count
+  - series_id: B25064
+    topic: Housing
+    aggregation_kind: median
+  - series_id: B25077
+    topic: Housing
+    aggregation_kind: median
+  - series_id: B25003
+    topic: Housing
+    aggregation_kind: count
+  - series_id: B08301
+    topic: Commuting
+    aggregation_kind: count
+  - series_id: B27001
+    topic: Health Insurance
+    aggregation_kind: count
+  - series_id: B23025
+    topic: Employment
+    aggregation_kind: count

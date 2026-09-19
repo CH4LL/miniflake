@@ -113,8 +113,8 @@ Sample rows:
 | Nation | Derived | SUM of all block groups |
 | State | Derived | SUM by state FIPS prefix |
 | County | Derived | SUM by county FIPS prefix; names from metadata |
-| Place | Derived | SUM via metadata mapping, if present in share |
-| CBSA | Derived | Not confirmed in share |
+| Place | Derived | Not supported in SafeGraph share; see S10 |
+| CBSA | Derived | Not supported in SafeGraph share; see S10 |
 | Tract, street | Unsupported | Declared out of scope |
 
 ## ACS vintages
@@ -170,7 +170,21 @@ Distinct ACS release years: 2019, 2020.
 
 ## Variable catalog
 
-To be populated by `scripts/snapshot_catalog.py` in S1. Field descriptions metadata contains 8164 distinct table_id values.
+<!-- catalog-snapshot-begin -->
+
+Generated on 2026-09-19T08:31:10.882977+00:00 by `scripts/snapshot_catalog.py`.
+
+Curated field count: 7.
+
+| Topic | Count |
+| :--- | ---: |
+| Age and Sex | 2 |
+| Educational Attainment | 1 |
+| Employment and Labor Force Status | 1 |
+| Income Households Families Individuals | 2 |
+| Population Total | 1 |
+
+<!-- catalog-snapshot-end -->
 
 ## Aggregation policy
 

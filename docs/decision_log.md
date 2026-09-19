@@ -141,3 +141,30 @@ What: Deployed health endpoint to Cloud Run in `us-east4` (project `miniflake`).
 Why: S0 exit criterion requires a working Cloud Run deployment before product code stages begin.
 Dropped: n/a
 Refs: specs/S0-foundations.md
+
+## 2026-09-19  Drop Place and CBSA geography levels for SafeGraph S1
+Stage: S1 | Type: deviation
+What: `GeoLevel` supports only BlockGroup, Nation, State, County. Place and CBSA removed from S1 implementation because the share has no place or CBSA mapping in metadata.
+Why: S0 discovery found `{YEAR}_METADATA_CBG_FIPS_CODES` has STATE/STATE_FIPS/COUNTY_FIPS/COUNTY only; block-group FIPS cannot resolve to cities without an external crosswalk.
+Dropped: Place/CBSA rollups from block groups in S1.
+Refs: ADR-003, specs/S10-public-data-supplement.md, evals L06, AG01, UL02, M01
+
+## 2026-09-19  Variable catalog queried from Snowflake metadata at runtime
+Stage: S1 | Type: decision
+What: `search_variables` and `get_variable` use SQL templates against `{vintage}_METADATA_CBG_FIELD_DESCRIPTIONS` filtered to curated series; `aggregation_kind` derived in Python from `fixtures/variable_catalog_spec.yaml`.
+Why: Keeps "every query is a template" true; fake repository loads snapshot JSON for CI parity.
+Dropped: Loading curated catalog only from fixtures in the Snowflake repository.
+Refs: specs/S1-data-layer.md, ADR-004
+
+## 2026-09-19  S1 data layer implemented with fake and Snowflake repositories
+Stage: S1 | Type: decision
+What: Implemented `CensusRepository`, `SnowflakeCensusRepository`, `FakeCensusRepository`, ten SQL templates, rollup module, catalog snapshot script, and contract tests. Geography levels: BlockGroup, Nation, State, County only.
+Why: S1 exit criteria require typed data access with provenance, counts-only rollups, and testable fakes before the tool layer.
+Dropped: Place/CBSA in S1 (see S10).
+Refs: specs/S1-data-layer.md, ARCHITECTURE.md
+
+## 2026-09-19  S1 live contract tests and block-group fixture grain
+Stage: S1 | Type: decision
+What: `RUN_LIVE_TESTS=1` contract and smoke suites passed (15 live tests). Snapshot fixtures store block-group direct observations only; fake rollup sums 12-digit geo ids so pre-aggregated state rows do not override rollups. Eval block groups updated to `480359506002` and `060371011101`.
+Why: Live share lacks some legacy eval block groups; fixture grain must match Snowflake rollup semantics for CI parity.
+Refs: fixtures/sample_observations.json, tests/component/data/test_repository_contract.py

@@ -6,14 +6,14 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-19 (S0 done).
+Last updated: 2026-09-19 (S1 done).
 
 ## Stages
 
 | Stage | Name | Est. | Status | Spec |
 | :--- | :--- | ---: | :--- | :--- |
 | S0 | Foundations and walking skeleton | 3.0 h | done | [S0-foundations.md](specs/S0-foundations.md) |
-| S1 | Data access layer | 3.0 h | todo | [S1-data-layer.md](specs/S1-data-layer.md) |
+| S1 | Data access layer | 3.0 h | done | [S1-data-layer.md](specs/S1-data-layer.md) |
 | S2 | Tool layer | 2.0 h | todo | [S2-tool-layer.md](specs/S2-tool-layer.md) |
 | S3 | Agent core | 3.0 h | todo | [S3-agent-core.md](specs/S3-agent-core.md) |
 | S4 | Conversation and API | 2.0 h | todo | [S4-conversation-api.md](specs/S4-conversation-api.md) |
@@ -22,6 +22,7 @@ Last updated: 2026-09-19 (S0 done).
 | S7 | Deployment | 1.5 h | todo | [S7-deployment.md](specs/S7-deployment.md) |
 | S8 | Evaluation and hardening | 3.0 h | todo | [S8-evaluation-hardening.md](specs/S8-evaluation-hardening.md) |
 | S9 | Documentation and reflection | 2.0 h | todo | [S9-docs-reflection.md](specs/S9-docs-reflection.md) |
+| S10 | Public data supplement | 2.0 h | todo | [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) |
 
 ## Stage summaries
 
@@ -99,6 +100,7 @@ Never cut: S0 to S4, the pre-checks and intent classifier of S5, S7, S9.
 
 ## Optional extensions (only after S9)
 
+- **S10 Public data supplement**: Place and CBSA questions via `SNOWFLAKE_PUBLIC_DATA_FREE`; see [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) for deferred eval items (L06, AG01, L05, R03).
 - Constrained free-SQL tool with an allow-list validator, for questions the typed tools cannot express.
 - Persistent `ConversationStore` (Firestore or Redis).
 - Streaming responses.
