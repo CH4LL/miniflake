@@ -34,7 +34,7 @@ class Tool(Protocol):
 - `Ambiguous(candidates: list[BaseModel], hint: str)`: more than one plausible match; `hint` tells the model how to disambiguate (e.g. ask for the state).
 - `NotFound(what: str, suggestions: list[str])`: nothing matched; `suggestions` are close alternatives from the catalog.
 - `PeriodUnavailable(requested: str, available: list[str])`: the geography and variable exist but not for the requested date or period.
-- `UnsupportedRequest(reason: str)`: the request is well-formed but the dataset cannot express it (e.g. block-group level, a variable outside the curated catalog).
+- `UnsupportedRequest(reason: str)`: the request is well-formed but the dataset cannot express it (e.g. median or rate at state/county level, tract or street level, a variable outside the curated catalog).
 - `ToolError(message: str, retryable: bool)`: repository failure.
 
 Every variant serializes to JSON for the LLM with a `kind` discriminator.
@@ -53,13 +53,13 @@ Behaviour: search the curated catalog; return `Success` with up to a configured 
 
 ### get_value
 
-Input: `variable_id: str`, `geo_id: str`, `year: int | None`, `period: MeasurementPeriod | None`.
-Behaviour: resolve the date (latest available if `year` is omitted), fetch the observation, return `Success` with value, unit, date, measurement period and geography name. If the year is not available, return `PeriodUnavailable` with the available years.
+Input: `field_id: str`, `geo_id: str`, `vintage: int | None`.
+Behaviour: resolve the variable's `aggregation_kind` and the geography level. Count fields at rolled-up geography use repository SUM rollup; median/rate fields at rolled-up geography return `UnsupportedRequest` explaining block-group-only availability. Block-group reads are direct. Return `Success` with value, vintage, `aggregation_method` and geography name. If the vintage is not available, return `PeriodUnavailable` with the available vintages.
 
 ### rank_geographies
 
-Input: `variable_id: str`, `level: GeoLevel`, `within_geo_id: str | None`, `year: int | None`, `order: "asc" | "desc"`, `limit: int`.
-Behaviour: rank at the given level, optionally within a parent. Return `Success` with an ordered list of (geography, value). Ranking of median or rate variables is allowed; aggregation across geographies is never performed here.
+Input: `field_id: str`, `level: GeoLevel`, `within_geo_id: str | None`, `vintage: int | None`, `order: "asc" | "desc"`, `limit: int`.
+Behaviour: rank at the given level, optionally within a parent. Only `count` fields are supported at rolled-up levels; median/rate fields return `UnsupportedRequest`. Return `Success` with an ordered list of (geography, value).
 
 ### get_trend
 
@@ -88,8 +88,11 @@ Each `Success` carries the list of `Provenance` objects from every repository ca
 - Given `find_geography("Springfield")`, then the result is `Ambiguous` with candidates in more than one state and a hint mentioning the state.
 - Given `find_geography("Atlantis")`, then the result is `NotFound` with a non-empty suggestion list.
 - Given `get_value` for a valid variable and geography with a year outside the fixture range, then the result is `PeriodUnavailable` listing the available years.
-- Given `get_value` with no year, then the result uses the latest date and provenance names it.
-- Given `rank_geographies` at level `County` within a state, then the results all have that state as parent and are ordered as requested.
+- Given `get_value` with no vintage, then the result uses the latest vintage and provenance names it.
+- Given `get_value` for a median field at county level, then the result is `UnsupportedRequest`.
+- Given `get_value` for a median field at block group level, then the result is `Success` with `aggregation_method: direct`.
+- Given `rank_geographies` for a count field at level `County` within a state, then the results all have that state as parent and are ordered as requested.
+- Given `rank_geographies` for a median field at any rolled-up level, then the result is `UnsupportedRequest`.
 - Given `compare` with geographies that share no date, then the result is `PeriodUnavailable`.
 - Given `compare` with one geo id, then dispatch returns `UnsupportedRequest` describing the minimum.
 - Given a repository that raises `RepositoryError`, when any tool is dispatched, then the result is `ToolError` and nothing propagates.

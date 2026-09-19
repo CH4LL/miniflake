@@ -57,7 +57,9 @@ All tool results seen during the loop are collected for provenance regardless of
 
 ## System prompt (`app/agent/prompts/system.md`)
 
-States the agent's role, the grounding rule (every number must come from a tool result in this conversation), how to handle each `ToolResult.kind` (ask a clarifying question on `Ambiguous`, say what is unavailable on `NotFound`, `PeriodUnavailable` and `UnsupportedRequest`, apologise and stop on `ToolError`), the answer format (short answer first, then the figures with their year and measurement period, then caveats), and the instruction to never estimate, extrapolate or aggregate across geographies. The prompt is a file so it can be edited without touching code and diffed in review.
+States the agent's role and data source (SafeGraph US Open Census, ACS 5-year estimates at block group level). Lists supported geography levels: block group (native), and nation/state/county/place for **count** measures only (summed from block groups). States that median and rate measures (income, age, poverty rate, etc.) are answerable only at block group level; at state, county or place level the agent must explain why and offer a block-group reformulation or a count-based alternative.
+
+Covers the grounding rule (every number must come from a tool result), how to handle each `ToolResult.kind`, the answer format (short answer first, figures with ACS vintage, note when a value is a SUM rollup), and the instruction to never estimate or extrapolate. The prompt is a file so it can be edited without touching code.
 
 ## Composer (`app/agent/composer.py`)
 

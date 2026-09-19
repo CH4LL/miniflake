@@ -44,11 +44,19 @@ Dropped: Snowflake Cortex (trial daily credit cap on Cortex AI functions, region
 Refs: ADR-002
 
 ## 2026-09-19  Dataset: default to Snowflake Public Data census tables, inspect SafeGraph listing too
-Stage: pre-S0 | Type: decision (provisional until S0)
+Stage: pre-S0 | Type: decision | **superseded**
 What: Acquire both free listings; default the application to the long-format Census Bureau tables from Snowflake Public Data Products; record the SafeGraph listing as considered.
 Why: Native State/County/CBSA/Place levels, ready-made variable catalog, multi-year coverage; block-group-only data would require aggregation that is invalid for medians and rates.
 Dropped: SafeGraph as the sole source; exporting or caching data outside Snowflake.
 Refs: ADR-003, specs/S0-foundations.md
+Superseded by: 2026-09-19 SafeGraph listing only (below). The requirements name the SafeGraph Marketplace listing explicitly; no interpretation space.
+
+## 2026-09-19  SafeGraph listing only; counts-only rollup policy
+Stage: pre-S0 | Type: decision
+What: Use only the SafeGraph "US Open Census Data & Neighborhood Insights - Free Dataset" Marketplace listing (GZSNZ2UNN0). Roll up count/total fields from block groups to state, county, place and nation via SUM; median and rate fields answerable only at block-group level.
+Why: The requirements name this listing; using a different Marketplace product would not comply. Count rollups are statistically valid; median/rate rollups are not.
+Dropped: Snowflake Public Data Products (Cybersyn long-format) as the application source; weighted-median approximations at aggregate geography; scoping the agent to block-group questions only.
+Refs: ADR-003, ADR-004, evals/questions.yaml v2
 
 ## 2026-09-19  Typed semantic tools instead of text-to-SQL
 Stage: pre-S0 | Type: decision
@@ -91,3 +99,10 @@ What: Dedicated `TYPE = SERVICE` user, RSA key pair, read-only role, dedicated X
 Why: New Snowflake accounts enforce MFA on password logins for human users, which a server cannot satisfy; a service user with key-pair auth is the supported non-interactive path.
 Dropped: Password auth for the application; using the trial's admin user.
 Refs: specs/S0-foundations.md
+
+## 2026-09-19  Snowflake trial: Standard edition, not Enterprise
+Stage: pre-S0 | Type: decision
+What: Sign up for the free trial as Standard edition.
+Why: The requirements call for a trial account. We need Marketplace listings, SQL, and a service user with key-pair auth; all of those work on Standard. Enterprise does not unlock anything this project uses (Cortex was rejected in ADR-002) and consumes trial credits faster.
+Dropped: Enterprise edition, which had been written into the S0 spec as a leftover Cortex-minded default.
+Refs: specs/S0-foundations.md, ADR-002

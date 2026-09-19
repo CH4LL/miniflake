@@ -21,7 +21,7 @@ flowchart TB
     Agent --> LLM["LLMClient (protocol) - Anthropic impl / FakeLLM"]
     Agent --> Tools["ToolRegistry: find_geography, find_variable, get_value, rank_geographies, get_trend, compare"]
     Tools --> Repo["CensusRepository (protocol) - Snowflake impl / Fake impl"]
-    Repo --> SF["Snowflake: Public Data census tables"]
+    Repo --> SF["Snowflake: SafeGraph Open Census"]
     Tools --> Prov["Provenance objects: variable, geography, period, SQL, rows"]
     Agent --> Composer["AnswerComposer: text + provenance + refusal templates"]
 ```
@@ -33,7 +33,7 @@ flowchart TB
 3. `ConversationService` loads the conversation from `ConversationStore`, appends the user turn, and passes the history plus resolved context (last geography, measure, period) to the guardrails.
 4. Guardrails run deterministic pre-checks, then an intent classification. Off-topic or harmful input is answered with a templated refusal without touching the data layer. Underspecified input is answered with a clarification.
 5. `AgentLoop` calls the LLM with the system prompt, conversation history and tool schemas. The LLM either answers or requests tool calls; the loop executes tools through `ToolRegistry`, feeds results back, and repeats until the model answers, the iteration cap is hit, or the time budget expires.
-6. Tools call `CensusRepository`, which runs parametrized SQL against Snowflake and returns typed rows plus a `Provenance` record. Tools return typed results including explicit `Ambiguous`, `NotFound` and `PeriodUnavailable` outcomes.
+6. Tools call `CensusRepository`, which runs parametrized SQL against Snowflake and returns typed rows plus a `Provenance` record. For count fields at state, county, place or nation level the repository sums block-group values; median and rate fields at those levels return `UnsupportedRequest`. Tools return typed results including explicit `Ambiguous`, `NotFound`, `PeriodUnavailable` and `UnsupportedRequest` outcomes.
 7. `AnswerComposer` produces the final text, attaches provenance, and applies the output grounding check: numbers in the text must appear in tool results, otherwise the answer is replaced with a grounded degradation message.
 8. The assistant turn and updated context are saved; the response is returned to the browser, which renders the text and an expandable provenance panel.
 
@@ -89,13 +89,20 @@ A single container runs FastAPI with uvicorn and serves both the API and the sta
 
 ## Data model
 
-The agent works over the Census Bureau source of Snowflake Public Data Products, which stores ACS estimates in long format:
+The agent works over the [SafeGraph US Open Census listing](https://app.snowflake.com/marketplace/listing/GZSNZ2UNN0/safegraph-us-open-census-data-neighborhood-insights-free-dataset) on Snowflake Marketplace. ACS 5-year estimates are stored at census block group grain in wide tables (one row per block group, ACS field codes as columns such as `B01003e1`), with metadata tables for field descriptions and FIPS-to-geography mapping. Exact Snowflake table names are documented in [docs/data/dataset.md](docs/data/dataset.md) after S0 discovery.
 
-- `AMERICAN_COMMUNITY_SURVEY_TIMESERIES`: one row per variable, geography and date.
-- `AMERICAN_COMMUNITY_SURVEY_ATTRIBUTES`: the variable catalog (series, level, measurement type and period, unit).
-- `GEOGRAPHY_INDEX`: geographies with a `level` (State, County, CBSA, Place and finer).
+**Native geography level:** `BlockGroup` (12-digit FIPS).
 
-A snapshot of the curated variable catalog and the supported geographies is stored under `fixtures/` and drives both the fake repository and the tool descriptions given to the LLM. Details are in [docs/data/dataset.md](docs/data/dataset.md).
+**Derived levels** (via FIPS prefix and metadata, where mapping exists): `Nation`, `State`, `County`, `Place`, and `CBSA` only if the metadata supports it.
+
+**Aggregation policy:**
+
+| `aggregation_kind` | Block group | Rolled-up geography |
+| :--- | :--- | :--- |
+| `count` | Direct read | `SUM` across block groups; provenance records `aggregation_method: sum` |
+| `median`, `rate` | Direct read | Not supported; returns `UnsupportedRequest` |
+
+A snapshot of the variable catalog (with `aggregation_kind` tags) and supported geographies is stored under `fixtures/` and drives both the fake repository and the tool descriptions given to the LLM.
 
 ## Testing
 

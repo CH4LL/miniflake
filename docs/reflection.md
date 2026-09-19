@@ -8,7 +8,7 @@ Placeholder. To cover:
 
 - How the 24 hours were split across stages, with actual versus estimated hours from the roadmap.
 - The decision to write the roadmap, specs and eval set before code, and what it cost and saved.
-- Summary of each ADR with a one-paragraph justification: stack (ADR-001), LLM provider including the Cursor SDK dead end (ADR-002), dataset interpretation (ADR-003), typed tools over text-to-SQL (ADR-004), conversation state (ADR-005), hosting and demo auth (ADR-006), layered guardrails (ADR-007), testing (ADR-008).
+- Summary of each ADR with a one-paragraph justification: stack (ADR-001), LLM provider including the Cursor SDK dead end (ADR-002), SafeGraph listing as sole data source with counts-only rollup policy (ADR-003), typed tools over text-to-SQL with repository-side SUM rollups (ADR-004), conversation state (ADR-005), hosting and demo auth (ADR-006), layered guardrails (ADR-007), testing (ADR-008).
 - Deviations from the plan, taken from decision log entries of type `deviation`.
 
 ## What I would improve or do differently with more time
@@ -20,7 +20,7 @@ Placeholder. Candidates already known at planning time:
 - Streaming responses to improve perceived latency.
 - Result caching for catalog lookups.
 - Broader variable catalog curation and per-topic prompt guidance.
-- Second `CensusRepository` implementation over the SafeGraph block-group tables, for sub-county questions with count-only aggregation.
+- Statistically valid median/rate rollups at state and county level (would require a different data product or published aggregate tables).
 
 Add items discovered during implementation and any stage marked `cut` in the roadmap.
 

@@ -35,7 +35,7 @@ Extract numeric tokens from the answer text (integers, decimals, percentages, wi
 
 ### Templates (`app/guardrails/templates.yaml`)
 
-Off-topic (states what the agent covers and offers example questions), harmful (brief refusal), injection (brief refusal), needs clarification (asks the specific missing element: geography, measure or period), ungrounded answer.
+Off-topic (states what the agent covers: US population questions from the SafeGraph Open Census ACS block-group dataset, with count rollups to state/county; example questions), harmful (brief refusal), injection (brief refusal), needs clarification (asks the specific missing element: geography, measure or vintage), ungrounded answer.
 
 ## Acceptance criteria
 

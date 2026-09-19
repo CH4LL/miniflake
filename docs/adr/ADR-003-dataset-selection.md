@@ -1,29 +1,43 @@
 # ADR-003: Dataset selection
 
-Status: proposed (2026-09-19). To be set to `accepted` at the end of S0 after schema inspection, or revised if inspection contradicts the assumptions below.
+Status: accepted (2026-09-19)
 
 ## Context
 
-The requirements name the US Open Census dataset on the Snowflake Marketplace as the data source. Two free listings plausibly match:
+The requirements call for the US Open Census dataset on the Snowflake Marketplace, accessed through a free trial account. The explicit listing is:
 
-- **SafeGraph: "US Open Census Data & Neighborhood Insights - Free Dataset."** Exact name match. Contents as documented publicly: American Community Survey 5-year estimates at census block group level only, wide tables with coded column names (one column per ACS variable), a metadata table mapping codes to descriptions, block-group geometry and city/county mappings.
-- **Snowflake Public Data Products: Census Bureau source (formerly Cybersyn).** Long-format tables: `AMERICAN_COMMUNITY_SURVEY_TIMESERIES` (variable, geography, date, value), `AMERICAN_COMMUNITY_SURVEY_ATTRIBUTES` (variable catalog with series, measurement type and period, unit), `GEOGRAPHY_INDEX` (geographies with a `level` such as State, County, CBSA, Place, Tract, Block Group). Multiple ACS releases over time.
+**[US Open Census Data & Neighborhood Insights - Free Dataset](https://app.snowflake.com/marketplace/listing/GZSNZ2UNN0/safegraph-us-open-census-data-neighborhood-insights-free-dataset)** (SafeGraph, listing `GZSNZ2UNN0`).
 
-Both listings are free and take minutes to acquire.
+Public documentation describes the dataset as American Community Survey 5-year estimates at census block group level, stored in wide tables (one row per block group, ACS field codes as column names such as `B01003e1`), with metadata tables for field descriptions, FIPS-to-city/county mapping, and geographic statistics. Snowflake vintages include 2019 and 2020 ACS 5-year releases; exact table names are confirmed in S0 schema discovery.
 
-## Options
+## Rejected alternatives
 
-1. **SafeGraph listing only.** Honours the literal name. State- or county-level questions require aggregating thousands of block groups; sums are valid for counts but not for medians, means or rates, which are the bulk of interesting questions (median income, poverty rate, median age). Coded column names make the variable catalog harder to expose to the LLM. Single ACS vintage limits trend questions.
-2. **Snowflake Public Data census tables only.** Native geography levels match how people ask questions. The attributes table is a ready-made variable catalog. Multi-year coverage enables trends. Long format means one SQL template shape for every variable. Risk: the name does not literally match the requirements.
-3. **Acquire both, inspect, default to option 2, document the interpretation.** Costs a few minutes in S0, records the literal listing as considered, and lets the `CensusRepository` protocol accommodate the SafeGraph tables later as a second implementation if a reviewer asks.
+- **Snowflake Public Data Products (Census Bureau / Cybersyn long-format tables).** Different Marketplace listing with native state/county geography levels and a long-format schema. Not the dataset named in the requirements; using it would require a loose reading of them.
 
 ## Decision
 
-Option 3. The application defaults to the Snowflake Public Data census tables at the Nation, State, County, CBSA and Place levels. The README states the interpretation: the requirement is read as "US Census data from the Snowflake Marketplace", the literal SafeGraph listing was acquired and inspected, and the long-format source was preferred because it answers the realistic question set without invalid aggregation. Block group and tract questions are declared out of scope with a clear message.
+Use the SafeGraph listing only. The application reads ACS data at census block group grain and rolls up to higher geography levels under the counts-only policy defined in ADR-004.
+
+**Native geography level:** `BlockGroup` (12-digit FIPS).
+
+**Derived geography levels** (via FIPS prefix and metadata mapping, where available):
+
+- `Nation`: sum all block groups.
+- `State`: sum block groups sharing the state FIPS prefix.
+- `County`: sum block groups sharing the county FIPS prefix; names from metadata.
+- `Place`: sum block groups mapped to a place in the FIPS metadata table, if the mapping exists in the acquired share.
+- `CBSA`: supported only if the metadata or discovery script confirms a block-group-to-CBSA mapping; otherwise declared unsupported.
+
+**Variable catalog:** derived from the field-descriptions metadata table, with each field tagged by `aggregation_kind` (`count`, `median`, `rate`) for rollup decisions.
+
+**Vintages:** ACS years present in the share (expected 2019 and 2020); trend questions apply only to count fields with multiple vintages.
+
+If Marketplace acquisition of this listing fails, log a deviation in the decision log and halt S1 until resolved. Do not substitute a different listing.
 
 ## Consequences
 
-- SQL templates in S1 are written against the three long-format tables.
-- The curated variable catalog is derived from the attributes table via a hand-maintained series allow-list.
-- Adding the SafeGraph tables later is a second `CensusRepository` implementation, not a redesign.
-- If S0 inspection shows the Public Data census tables are unavailable in the chosen region or listing, this ADR is revised to option 1 with an aggregation-safety rule (counts only) before S1 begins.
+- SQL templates in S1 target wide ACS tables and metadata tables, not long-format timeseries.
+- State- and county-level population questions are answered by summing block groups; median, rate and percentage questions at those levels are declared unanswerable.
+- Median and rate questions at block group level are answered by direct column read.
+- Tract and street-level questions remain out of scope.
+- S0 discovery script documents the actual Snowflake table and column names; assumptions in this ADR are revised only if discovery contradicts them.

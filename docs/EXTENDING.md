@@ -13,12 +13,14 @@ Outline:
 
 ## Add a data source (completed in S1)
 
-Outline:
+The current implementation reads the SafeGraph US Open Census listing: wide ACS tables at block group grain plus metadata tables for field descriptions and FIPS mapping. Rollup logic lives in `app/data/rollup.py`.
+
+Outline for a different source:
 
 1. Implement `CensusRepository` (or a new protocol if the domain differs) in `app/data/`.
 2. Provide a fake implementation and fixture snapshot for tests; run the shared contract suite against both.
 3. Select the implementation in `app/main.py` via a configuration value.
-4. If the new source has different geography levels or measurement periods, update the catalog fixtures and the system prompt's rendered summary.
+4. If the new source has different geography levels, vintages or aggregation rules, update the catalog fixtures, `aggregation_kind` tagging and the system prompt's rendered summary.
 
 ## Swap the LLM provider (completed in S3)
 

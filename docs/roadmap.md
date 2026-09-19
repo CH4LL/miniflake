@@ -6,7 +6,7 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-19 (roadmap created; no stage started).
+Last updated: 2026-09-19 (SafeGraph dataset pivot applied to specs).
 
 ## Stages
 
@@ -27,13 +27,13 @@ Last updated: 2026-09-19 (roadmap created; no stage started).
 
 ### S0 Foundations and walking skeleton
 
-Goal: remove every external unknown before writing product code. Snowflake trial account with both candidate listings, service user with key-pair auth, discovery script that documents the dataset, confirmed dataset choice, Python project skeleton with configuration and health endpoint, container image, CI, and a hello-world deployment to Cloud Run.
+Goal: remove every external unknown before writing product code. Snowflake trial account with the SafeGraph Open Census listing acquired, service user with key-pair auth, discovery script that documents the share schema, Python project skeleton with configuration and health endpoint, container image, CI, and a hello-world deployment to Cloud Run.
 
-Exit criteria: `GET /api/health` returns OK locally and on the Cloud Run URL; CI lint and tests green; `docs/data/dataset.md` filled from the discovery script; ADR-003 status set to accepted.
+Exit criteria: `GET /api/health` returns OK locally and on the Cloud Run URL; CI lint and tests green; `docs/data/dataset.md` filled from the discovery script with SafeGraph table layout.
 
 ### S1 Data access layer
 
-Goal: a `CensusRepository` protocol with a Snowflake implementation (read-only guard, timeouts, row caps, retry) and a fixture-backed fake. SQL templates for geography lookup, variable search, value lookup, ranking and time series. Catalog snapshot script producing fixtures for supported geographies and a curated variable catalog.
+Goal: a `CensusRepository` protocol with a Snowflake implementation over SafeGraph wide tables and metadata (read-only guard, timeouts, row caps, retry, counts-only rollup from block groups). SQL templates for geography lookup, variable search, value lookup, ranking and time series. Catalog snapshot script producing fixtures with `aggregation_kind` tags.
 
 Exit criteria: every SQL template answers its fixture question in unit tests; fake repository passes the same contract tests as the Snowflake implementation; opt-in live smoke test passes.
 

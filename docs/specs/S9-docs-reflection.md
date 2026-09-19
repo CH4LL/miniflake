@@ -8,7 +8,7 @@ Everything a reviewer or a new engineer needs is in the repository and internall
 
 ## Scope
 
-1. `README.md` final: what it is, how to evaluate the demo (URL, credentials pointer, example questions by category), architecture summary with link, run locally, run tests, configuration reference (names and purposes of settings, no values), interpretations of ambiguous requirements, link map to reflection, ADRs, decision log, roadmap.
+1. `README.md` final: what it is, how to evaluate the demo (URL, credentials pointer, example questions by category), architecture summary with link, run locally, run tests, configuration reference (names and purposes of settings, no values), data source and scope section (SafeGraph listing, counts-only rollup policy), link map to reflection, ADRs, decision log, roadmap.
 2. `docs/reflection.md`: sections on (development process and key decisions; what would be improved with more time; edge cases and failure modes not fully addressed; testing approach and what would be added), plus a section on how AI coding tools were used, drawing from `docs/decision_log.md` and the S8 report.
 3. `docs/testing-strategy.md` final: layers, coverage, tradeoffs, live suites, evals.
 4. `docs/EXTENDING.md` final: add a tool, add a data source, swap the LLM, swap the conversation store, with file paths that exist.

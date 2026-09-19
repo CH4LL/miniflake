@@ -30,15 +30,16 @@ Added in S0. Lists every setting in `app/config.py` with its purpose. Values are
 
 See [docs/testing-strategy.md](docs/testing-strategy.md). Default `uv run pytest` needs no credentials; live suites and evals are opt-in.
 
-## Interpretations of ambiguous requirements
+## Data source and scope
 
-Recorded as decided; see ADR-003 and ADR-006 for detail.
+See [ADR-003](docs/adr/ADR-003-dataset-selection.md) and [ADR-004](docs/adr/ADR-004-query-strategy.md).
 
-- "US Open Census dataset" is read as US Census data from the Snowflake Marketplace. Both the SafeGraph "US Open Census Data & Neighborhood Insights" listing and the Census Bureau source of Snowflake Public Data Products were acquired and inspected; the application defaults to the latter because it provides state, county, metro and place levels natively and a multi-year catalog. Rationale in [ADR-003](docs/adr/ADR-003-dataset-selection.md).
-- "Questions about the US population" is scoped to ACS measures at Nation, State, County, CBSA and Place levels. Tract and block-group questions are declared out of scope with a clear message.
-- The 60-second response requirement is enforced server-side: the agent answers or degrades gracefully within the budget rather than exceeding it.
-- Authentication for the demo is a shared passphrase, available from the author on request.
-- Aggregation across geographies is never performed by the application; questions that require it are answered with an explanation and the nearest supported figure.
+- **Dataset:** [US Open Census Data & Neighborhood Insights - Free Dataset](https://app.snowflake.com/marketplace/listing/GZSNZ2UNN0/safegraph-us-open-census-data-neighborhood-insights-free-dataset) (SafeGraph) on Snowflake Marketplace. ACS 5-year estimates at census block group level.
+- **Count questions** (e.g. population) at nation, state, county or place level are answered by summing block groups.
+- **Median and rate questions** (e.g. median income, poverty rate) at those rolled-up levels are declared unanswerable; the same measures are answerable at block group level.
+- Tract and street-level questions are out of scope.
+- The 60-second response requirement is enforced server-side.
+- Demo authentication is a shared passphrase, available from the author on request.
 
 ## Documents
 
