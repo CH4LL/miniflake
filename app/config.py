@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     log_format: str = Field(default="json", alias="LOG_FORMAT")
     log_message_preview_chars: int = Field(default=120, alias="LOG_MESSAGE_PREVIEW_CHARS")
+    log_file: str | None = Field(default=None, alias="LOG_FILE")
     health_version: str = Field(default="0.1.0", alias="HEALTH_VERSION")
 
     snowflake_account: str = Field(alias="SNOWFLAKE_ACCOUNT")
@@ -159,6 +160,11 @@ class Settings(BaseSettings):
     def state_fips_names_file(self) -> Path:
         return Path(self.state_fips_names_path)
 
+    def log_file_path(self) -> Path | None:
+        if not self.log_file:
+            return None
+        return Path(self.log_file)
+
     @field_validator("acs_vintages", mode="before")
     @classmethod
     def parse_acs_vintages(cls, value: object) -> object:
@@ -172,6 +178,19 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [part.strip() for part in value.split(",") if part.strip()]
         return value
+
+    @model_validator(mode="after")
+    def resolve_log_file(self) -> Self:
+        if self.log_file == "":
+            self.log_file = None
+            return self
+        if (
+            self.log_file is None
+            and self.environment == "local"
+            and "log_file" not in self.model_fields_set
+        ):
+            self.log_file = "logs/app.jsonl"
+        return self
 
     @model_validator(mode="after")
     def validate_private_key_source(self) -> Self:

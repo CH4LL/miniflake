@@ -56,6 +56,7 @@ class AgentAnswer(BaseModel):
     tool_calls: list[ToolCallTrace] = Field(default_factory=list)
     usage: Usage = Field(default_factory=Usage)
     transcript: list[Message] = Field(default_factory=list)
+    stop_reason: Literal["end_turn", "timeout", "iteration_cap", "llm_error"] | None = None
 
 
 class AnswerComposer:
@@ -79,6 +80,7 @@ class AnswerComposer:
                 provenance=provenance,
                 tool_calls=tool_traces,
                 usage=usage,
+                stop_reason=stop_reason,
             )
 
         if tool_traces and tool_traces[-1].result_kind == "tool_error":
@@ -88,6 +90,7 @@ class AnswerComposer:
                 provenance=provenance,
                 tool_calls=tool_traces,
                 usage=usage,
+                stop_reason=stop_reason,
             )
 
         text = "\n".join(part.strip() for part in text_blocks if part.strip())
@@ -99,6 +102,7 @@ class AnswerComposer:
                     provenance=[],
                     tool_calls=tool_traces,
                     usage=usage,
+                    stop_reason=stop_reason,
                 )
             return AgentAnswer(
                 text=text,
@@ -106,6 +110,7 @@ class AnswerComposer:
                 provenance=[],
                 tool_calls=tool_traces,
                 usage=usage,
+                stop_reason=stop_reason,
             )
 
         outcome = self._outcome_from_traces(tool_traces)
@@ -115,6 +120,7 @@ class AnswerComposer:
             provenance=provenance,
             tool_calls=tool_traces,
             usage=usage,
+            stop_reason=stop_reason,
         )
 
     def _outcome_from_traces(

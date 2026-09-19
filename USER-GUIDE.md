@@ -102,6 +102,10 @@ The CLI prints:
 
 Adjust agent timeouts and iteration limits with the `AGENT_*` and `ANTHROPIC_*` settings in configuration.
 
+## Local logs
+
+When running the server or CLI locally, structured JSON lines are appended to the file named by `LOG_FILE` (gitignored). Open that file in the editor while the process is running. Search by `request_id`, `conversation_id`, `outcome`, or `stop_reason` to see why a turn failed (`timeout`, `iteration_cap`, or `llm_error`). An empty `LOG_FILE` disables the file sink; production keeps stderr-only logging for Cloud Logging.
+
 ## API
 
 ### Health

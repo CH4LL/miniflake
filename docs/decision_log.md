@@ -471,3 +471,10 @@ Why: L07 (poverty percentage at state) may be answerable from ACS counts, but ch
 Dropped: Treating L07 as `answer` without proving the field is a count in the share.
 Refs: fixtures/variable_catalog_spec.yaml, evals L07
 
+## 2026-09-19  Local JSON lines file sink
+Stage: S8 | Type: decision
+What: Added a `LOG_FILE` JSON lines handler beside the existing stderr stream. Unset `LOG_FILE` in the local environment writes under `logs/` (gitignored); empty path disables; production stays stream-only. Agent loop logs `stop_reason` and `LLMError.retryable`; chat-turn records include `stop_reason`.
+Why: Uvicorn `--reload` does not surface stream logs usefully locally, and terminal search is a poor way to diagnose a failed agent turn. Cloud Logging remains stdout/stderr; no log shipping.
+Dropped: Cloud Logging changes; rotating/viewer UI; logging full prompts at info.
+Refs: app/logging.py, specs/S7-deployment.md, ADR-006
+

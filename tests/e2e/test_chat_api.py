@@ -32,6 +32,7 @@ def _settings(**overrides: Any) -> Settings:
         "CONVERSATION_TTL_SECONDS": 3600,
         "SESSION_COOKIE_NAME": "miniflake_session",
         "DEMO_AUTH_ENABLED": False,
+        "LOG_FILE": "",
     }
     base.update(overrides)
     return Settings(**base, _env_file=None)

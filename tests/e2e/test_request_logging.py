@@ -36,6 +36,7 @@ def _settings(**overrides: Any) -> Settings:
         "SESSION_COOKIE_NAME": "miniflake_session",
         "DEMO_AUTH_ENABLED": False,
         "LOG_FORMAT": "json",
+        "LOG_FILE": "",
         "WARMUP_ENABLED": False,
     }
     base.update(overrides)
@@ -147,5 +148,6 @@ def test_chat_turn_emits_structured_log() -> None:
     payload = turn_records[0]
     assert payload["request_id"]
     assert payload["outcome"] == "answer"
+    assert payload["stop_reason"] == "end_turn"
     assert payload["latency_ms"] >= 0
     assert any(call["name"] == "get_value" for call in payload["tool_calls"])

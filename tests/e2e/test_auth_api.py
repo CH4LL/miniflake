@@ -31,6 +31,7 @@ def _settings(**overrides: Any) -> Settings:
         "AUTH_SIGNING_SECRET": "test-signing-secret-at-least-32-chars-long",
         "AUTH_COOKIE_NAME": "miniflake_auth",
         "SESSION_COOKIE_NAME": "miniflake_session",
+        "LOG_FILE": "",
     }
     base.update(overrides)
     return Settings(**base, _env_file=None)

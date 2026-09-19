@@ -11,6 +11,11 @@ All notable changes to this project. One entry per completed stage or feature; n
 - Number extraction for eval value checks moved to `evals/numbers.py`.
 - Golden set schema adds `expected_missing` for clarify items; CF01 expects unanswerable.
 
+### Local JSON lines logging
+- `configure_logging` appends JSON lines to `LOG_FILE` (gitignored `logs/` by default locally) while keeping the stderr stream handler for Cloud Logging.
+- Agent loop logs `stop_reason` and `LLMError` details; chat-turn records include `stop_reason`.
+- CLI runner (`scripts/chat_cli.py`) uses the same logging setup.
+
 ### Fixes
 - Health endpoint reads settings from the injected application container so container-based e2e tests run in CI without Snowflake environment variables.
 

@@ -39,6 +39,40 @@ def test_settings_defaults_apply(isolated_env: None, apply_env) -> None:
     assert settings.log_level == "INFO"
     assert settings.health_version == "0.1.0"
     assert settings.snowflake_schema == "PUBLIC"
+    assert settings.log_file_path() == Path("logs/app.jsonl")
+
+
+def test_empty_log_file_disables_file_sink(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+            "LOG_FILE": "",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.environment == "local"
+    assert settings.log_file_path() is None
+
+
+def test_production_environment_does_not_default_log_file(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+            "ENVIRONMENT": "production",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.log_file_path() is None
 
 
 def test_missing_required_snowflake_field_raises_with_field_name(

@@ -3,5 +3,6 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+logs/
 *.p8
 *.pem

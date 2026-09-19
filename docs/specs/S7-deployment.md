@@ -11,7 +11,7 @@ The full application runs on a public HTTPS URL on Google Cloud Run with secrets
 1. Hardened `Dockerfile`: multi-stage build with `uv`, non-root user, pinned base image, only runtime dependencies in the final layer.
 2. Secrets in Secret Manager: Snowflake private key, Anthropic API key, cookie signing secret, demo passphrase. Mounted as environment variables in the Cloud Run service.
 3. Cloud Run service configuration expressed in `deploy/service.yaml` (or `gcloud` flags in `scripts/deploy.sh`): min and max instances both one during the evaluation window, request timeout above the response budget, concurrency limit, CPU always allocated so background warm-up is possible, region matching the Snowflake region where possible.
-4. Structured JSON logging with request id, conversation id, latency, outcome, tool call names and durations, LLM token usage, and Snowflake query duration. No message content beyond a truncated preview at info level; full content only at debug.
+4. Structured JSON logging with request id, conversation id, latency, outcome, tool call names and durations, LLM token usage, and Snowflake query duration. No message content beyond a truncated preview at info level; full content only at debug. Stream handler remains the Cloud Run / Cloud Logging contract. Locally, the same JSON records are also appended to the `LOG_FILE` path (gitignored) so a failed agent turn can be inspected without the uvicorn terminal. Agent loop failures log `stop_reason` (`timeout`, `iteration_cap`, `llm_error`) and `LLMError.retryable`.
 5. Startup warm-up: open the Snowflake connection and run a trivial query so the first user request does not pay warehouse resume time.
 6. `scripts/deploy.sh`: build, push to Artifact Registry, deploy, run the smoke test.
 7. `scripts/smoke_deployed.py`: logs in, sends a golden lookup question, asserts outcome `answer` and latency within budget.
@@ -31,14 +31,14 @@ Custom domains, autoscaling tuning, CI-triggered deployment, persistent storage.
 
 ## Tests to write first
 
-1. `tests/unit/test_logging.py`: JSON formatter output fields; message content redaction at info level.
+1. `tests/unit/test_logging.py`: JSON formatter output fields; message content redaction at info level; JSON lines file sink, append on reconfigure, and environment-gated default path.
 2. `tests/unit/test_warmup.py`: warm-up calls the repository once and tolerates failure without crashing startup.
 3. `scripts/smoke_deployed.py` doubles as the deployed acceptance test; it is not part of the pytest suite.
 
 ## Files
 
 - `Dockerfile`, `.dockerignore`, `deploy/service.yaml` or flags in `scripts/deploy.sh`, `scripts/smoke_deployed.py`
-- `app/logging.py`, `app/warmup.py`, `app/main.py` lifespan wiring
+- `app/logging.py`, `app/warmup.py`, `app/main.py` lifespan wiring; `LOG_FILE` in `app/config.py`
 - `README.md` access section
 
 ## Documentation updates at stage end

@@ -9,6 +9,7 @@ from app.config import Settings, get_settings
 from app.data.snowflake_repository import SnowflakeCensusRepository
 from app.llm.anthropic_client import AnthropicLLMClient
 from app.llm.types import Message, TextBlock
+from app.logging import configure_logging
 from app.tools.registry import default_registry
 
 
@@ -25,6 +26,7 @@ def read_question(argv: list[str]) -> str:
 def run_question(question: str, settings: Settings | None = None) -> None:
     get_settings.cache_clear()
     resolved_settings = settings or Settings()
+    configure_logging(resolved_settings)
     repository = SnowflakeCensusRepository(resolved_settings)
     try:
         llm = AnthropicLLMClient(resolved_settings)

@@ -59,13 +59,26 @@ class JsonFormatter(logging.Formatter):
 
 def configure_logging(settings: Settings) -> None:
     root = logging.getLogger()
-    root.handlers.clear()
-    handler = logging.StreamHandler()
+    for existing in list(root.handlers):
+        root.removeHandler(existing)
+        if isinstance(existing, logging.FileHandler):
+            existing.close()
+    stream_handler = logging.StreamHandler()
     if settings.log_format == "json":
-        handler.setFormatter(JsonFormatter())
+        stream_handler.setFormatter(JsonFormatter())
     else:
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
-    root.addHandler(handler)
+        stream_handler.setFormatter(
+            logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+        )
+    root.addHandler(stream_handler)
+
+    log_path = settings.log_file_path()
+    if log_path is not None:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
+        file_handler.setFormatter(JsonFormatter())
+        root.addHandler(file_handler)
+
     root.setLevel(settings.log_level.upper())
 
     for logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):

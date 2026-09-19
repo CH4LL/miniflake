@@ -61,6 +61,8 @@ uv run uvicorn app.main:create_app --factory --reload --port 8080
 
 Health check: `GET http://localhost:8080/api/health`
 
+Local JSON lines are appended to the `LOG_FILE` path (gitignored; see `.env.example`). Open that file while the server is running to inspect request and agent events, including `stop_reason` on failed turns.
+
 Schema discovery (requires Snowflake credentials in `.env`):
 
 ```bash
@@ -83,7 +85,8 @@ All settings are read from environment variables (or `.env`) by `app/config.py`.
 | `APP_NAME` | Service name returned by the health endpoint |
 | `ENVIRONMENT` | Deployment environment label (`local`, `production`, …) |
 | `LOG_LEVEL` | Application log level |
-| `LOG_FORMAT` | Log output format (`json` for Cloud Logging, `text` for local) |
+| `LOG_FORMAT` | Log stream format (`json` for Cloud Logging, `text` for local stderr) |
+| `LOG_FILE` | JSON lines file path; empty disables. Unset in the local environment writes under `logs/` |
 | `LOG_MESSAGE_PREVIEW_CHARS` | Maximum characters logged for message content at info level |
 | `HEALTH_VERSION` | Version string returned by the health endpoint |
 | `SNOWFLAKE_ACCOUNT` | Snowflake account identifier |

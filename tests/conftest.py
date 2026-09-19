@@ -12,7 +12,7 @@ def isolated_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]
             (
                 "APP_",
                 "ENVIRONMENT",
-                "LOG_LEVEL",
+                "LOG_",
                 "HEALTH_",
                 "SNOWFLAKE_",
                 "GCP_",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -7,6 +8,7 @@ from app.agent.loop import AgentLoop
 from app.config import Settings
 from app.data.errors import RepositoryError
 from app.data.fake_repository import FakeCensusRepository
+from app.llm.errors import LLMError
 from app.llm.fake import FakeLLM
 from app.llm.types import LLMResponse, Message, TextBlock, ToolUseBlock, Usage
 from app.tools.registry import default_registry
@@ -84,6 +86,7 @@ def test_happy_path_lookup_returns_answer_with_provenance() -> None:
         _user_message("What is the population of Texas?"), deadline=time.monotonic() + 60
     )
     assert answer.outcome == "answer"
+    assert answer.stop_reason == "end_turn"
     assert answer.text == "Texas population is available from ACS."
     assert answer.provenance
     assert {trace.name for trace in answer.tool_calls} == {"find_geography", "get_value"}
@@ -190,6 +193,7 @@ def test_past_deadline_skips_llm_and_returns_timeout_error() -> None:
     llm = FakeLLM([])
     answer = _loop(llm).run(_user_message("Population of Texas?"), deadline=time.monotonic() - 1)
     assert answer.outcome == "error"
+    assert answer.stop_reason == "timeout"
     assert "ran out of time" in answer.text.lower()
     assert llm.calls == []
 
@@ -216,8 +220,23 @@ def test_iteration_cap_returns_error() -> None:
         deadline=time.monotonic() + 60,
     )
     assert answer.outcome == "error"
+    assert answer.stop_reason == "iteration_cap"
     assert "maximum number of lookup steps" in answer.text.lower()
     assert len(llm.calls) == 3
+
+
+def test_llm_error_logs_stop_reason(caplog: Any) -> None:
+    llm = FakeLLM([LLMError("upstream timeout", retryable=True)])
+    with caplog.at_level(logging.INFO, logger="app.agent.loop"):
+        answer = _loop(llm).run(
+            _user_message("Population of Texas?"), deadline=time.monotonic() + 60
+        )
+    assert answer.outcome == "error"
+    assert answer.stop_reason == "llm_error"
+    records = [record for record in caplog.records if record.name == "app.agent.loop"]
+    assert any(getattr(record, "stop_reason", None) == "llm_error" for record in records)
+    assert any(getattr(record, "retryable", None) is True for record in records)
+    assert any("upstream timeout" in record.getMessage() for record in records)
 
 
 def test_repository_error_surfaces_as_tool_error_and_error_outcome() -> None:

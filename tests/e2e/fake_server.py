@@ -111,6 +111,7 @@ def build_fake_container() -> AppContainer:
         AUTH_SIGNING_SECRET="test-signing-secret-at-least-32-chars-long",
         AUTH_COOKIE_NAME="miniflake_auth",
         SESSION_COOKIE_NAME="miniflake_session",
+        LOG_FILE="",
         _env_file=None,
     )
     llm = FakeLLM(_texas_then_florida_script())

@@ -215,6 +215,7 @@ def test_timeout_iteration_and_llm_error_use_error_templates() -> None:
     assert iteration.outcome == "error"
     assert "iteration template" in iteration.text
     assert llm_error.outcome == "error"
+    assert llm_error.stop_reason == "llm_error"
     assert "llm template" in llm_error.text
 
 

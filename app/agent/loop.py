@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Callable
 from typing import Literal
@@ -13,6 +14,8 @@ from app.llm.errors import LLMError
 from app.llm.types import Message, TextBlock, ToolResultBlock, ToolSchema, ToolUseBlock, Usage
 from app.tools.registry import ToolRegistry
 from app.tools.results import Success, ToolError
+
+logger = logging.getLogger(__name__)
 
 
 class AgentLoop:
@@ -74,8 +77,13 @@ class AgentLoop:
                     tools,
                     timeout_s=remaining,
                 )
-            except LLMError:
+            except LLMError as exc:
                 stop_reason = "llm_error"
+                logger.warning(
+                    "agent llm error: %s",
+                    exc,
+                    extra={"stop_reason": "llm_error", "retryable": exc.retryable},
+                )
                 break
 
             usage = Usage(
@@ -138,6 +146,15 @@ class AgentLoop:
 
         if stop_reason is None:
             stop_reason = "iteration_cap"
+
+        if stop_reason != "end_turn":
+            logger.info(
+                "agent stopped",
+                extra={
+                    "stop_reason": stop_reason,
+                    "tool_names": [trace.name for trace in tool_traces],
+                },
+            )
 
         answer = self._composer.compose(
             stop_reason=stop_reason,
