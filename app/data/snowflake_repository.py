@@ -459,8 +459,19 @@ class SnowflakeCensusRepository:
             )
         return " UNION ALL ".join(parts)
 
+    def _connection_is_closed(self) -> bool:
+        connection = self._connection
+        if connection is None:
+            return True
+        is_closed = getattr(connection, "is_closed", None)
+        if callable(is_closed):
+            return bool(is_closed())
+        if is_closed is None:
+            return False
+        return bool(is_closed)
+
     def _connection_or_open(self):
-        if self._connection is None or getattr(self._connection, "is_closed", False):
+        if self._connection is None or self._connection_is_closed():
             self._connection = connect_snowflake(self._settings)
             cursor = self._connection.cursor()
             try:
@@ -491,6 +502,10 @@ class SnowflakeCensusRepository:
             try:
                 cursor.execute(expanded_sql, expanded_params)
                 rows = cursor.fetchall()
+            except Exception as exc:
+                if is_transient_snowflake_error(exc):
+                    self.close()
+                raise
             finally:
                 cursor.close()
             duration_ms = (time.perf_counter() - start) * 1000
@@ -525,6 +540,7 @@ class SnowflakeCensusRepository:
         )
 
     def close(self) -> None:
-        if self._connection is not None and not getattr(self._connection, "is_closed", True):
-            self._connection.close()
+        connection = self._connection
+        if connection is not None and not self._connection_is_closed():
+            connection.close()
         self._connection = None

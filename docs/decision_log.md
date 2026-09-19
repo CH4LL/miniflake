@@ -499,3 +499,10 @@ Why: CF-4 requires complete responses within 60 seconds under normal conditions,
 Dropped: Using the response budget as the API hard timeout; keeping eval HTTP timeout only slightly above the eval latency budget.
 Refs: requirements CF-4, specs/S4-conversation-api.md, evals/eval_config.yaml
 
+## 2026-09-19  Invoke Snowflake is_closed() so the process reuses one session
+Stage: S8 | Type: decision
+What: `SnowflakeCensusRepository` treats closed-ness as `connection.is_closed()` (callable). `close()` closes an open session. A transient connection error drops the cached session before retry so the next attempt opens a new one.
+Why: Local `logs/app.jsonl` showed 8–30 `connect()` calls per chat turn. `getattr(connection, "is_closed", …)` returned the bound method, which is always truthy, so every query opened a new session and `close()` never ran. Leaving a dead socket in `_connection` would make reuse stick to it across retries.
+Dropped: Treating `is_closed` as a truthy attribute; reconnecting on every query; retrying on the same cached connection after "connection is closed".
+Refs: specs/S1-data-layer.md, app/data/snowflake_repository.py, logs/app.jsonl
+

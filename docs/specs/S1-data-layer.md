@@ -74,7 +74,7 @@ ACS wide tables are named `{YEAR}_CBG_B{nn}` (e.g. `2019_CBG_B01`, `2020_CBG_B25
 
 ## Snowflake implementation
 
-- One connection per process, opened lazily, re-opened on a closed-connection error.
+- One connection per process, opened lazily, re-opened on a closed-connection error. Closed-ness is `connection.is_closed()` (callable).
 - Session parameters set at connect: `STATEMENT_TIMEOUT_IN_SECONDS`, `QUERY_TAG`.
 - Read-only guard: every statement passes through a single `execute` helper that rejects anything not starting with `SELECT` or `WITH` and rejects multiple statements.
 - Row cap: every template ends with `LIMIT`; the helper clamps `limit` to the configured maximum.

@@ -11,6 +11,9 @@ All notable changes to this project. One entry per completed stage or feature; n
 - The agent loop skips further tool dispatch when remaining time is below the per-LLM-call minimum.
 - Eval scoring asserts the eval latency budget default matches the product response budget.
 
+### S8: Snowflake connection reuse
+- `SnowflakeCensusRepository` reuses one Snowflake session per process, calling `is_closed()` to decide when to reopen, and drops the cached session on a transient connection error so retry does not reuse a dead socket.
+
 ### S8: Prompt and guardrail hardening
 - Intent classifier no longer treats omitted ACS vintage as missing; the pipeline ignores `missing=vintage` and named population questions do not clarify measure.
 - System prompt defaults unspecified year to the latest 5-year vintage, maps population to B01003, and steers multi-geography questions to `compare`.
