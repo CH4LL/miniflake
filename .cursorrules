@@ -12,4 +12,5 @@
   Update CHANGELOG.MD after every feature development with a concise summary of what changed
   ARCHITECTURE.md must contain a concise architectural overview of the existing elements. More specific feature descriptions may be created in ./docs as appropriate
   USER-GUIDE.md must contain a concise, human-friendly instruction on how to use existing features
+  ./docs/requirements.md contains the full project requirements
 </global rules>
