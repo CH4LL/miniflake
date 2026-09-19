@@ -103,6 +103,41 @@ Refs: specs/S0-foundations.md
 ## 2026-09-19  Snowflake trial: Standard edition, not Enterprise
 Stage: pre-S0 | Type: decision
 What: Sign up for the free trial as Standard edition.
-Why: The requirements call for a trial account. We need Marketplace listings, SQL, and a service user with key-pair auth; all of those work on Standard. Enterprise does not unlock anything this project uses (Cortex was rejected in ADR-002) and consumes trial credits faster.
+Why: The requirements call for a trial account. We need Marketplace listings, SQL, and a service user with key-pair auth; all of those work on Standard. Enterprise does not unlock anything this project uses (Cortex was rejected in ADR-002) and consumes trial credits faster. | However, turns out that even when selecting Standard, the trial version still uses Enterprise version regardless, so it seems to not be a choice.
 Dropped: Enterprise edition, which had been written into the S0 spec as a leftover Cortex-minded default.
 Refs: specs/S0-foundations.md, ADR-002
+
+## 2026-09-19  S0 Cloud Run deploy uses placeholder Snowflake env vars
+Stage: S0 | Type: deviation
+What: The S0 hello-world Cloud Run deploy passes placeholder Snowflake settings as plain environment variables. Secret Manager wiring is deferred to S7.
+Why: The health endpoint does not touch Snowflake; wiring real credentials now would pull S7 work forward without benefit. Settings still validates at startup, so placeholders satisfy the fail-fast contract.
+Dropped: Creating Secret Manager secrets in S0.
+Refs: specs/S0-foundations.md, specs/S7-deployment.md
+
+## 2026-09-19  Python 3.12 pin via uv despite local 3.13
+Stage: S0 | Type: decision
+What: `.python-version` pins 3.12; `uv` provisions it even when the host has 3.13 installed.
+Why: ADR-001 specifies 3.12; the Snowflake connector has well-tested wheels on 3.12.
+Dropped: Running on the host's default 3.13 interpreter.
+Refs: ADR-001, pyproject.toml
+
+## 2026-09-19  SafeGraph share schema differs from spec assumptions
+Stage: S0 | Type: deviation
+What: Discovery found ACS wide tables named `{YEAR}_CBG_B{nn}` (e.g. `2019_CBG_B01`, `2020_CBG_B25`), not `ACS{year}_5YR`. Metadata tables are `{YEAR}_METADATA_CBG_FIELD_DESCRIPTIONS`, `{YEAR}_METADATA_CBG_FIPS_CODES`, and `{YEAR}_METADATA_CBG_GEOGRAPHIC_DATA`. No CBSA mapping column exists in the FIPS table. Vintages present: 2019 and 2020. ~220k block groups (2019) and ~242k (2020).
+Why: The spec was written before the share was inspected; the actual SafeGraph listing uses its own naming convention.
+Dropped: Assuming `ACS2019_5YR`-style table names and CBSA support from metadata.
+Refs: docs/data/dataset.md, specs/S1-data-layer.md
+
+## 2026-09-19  Live tests passed against Snowflake trial
+Stage: S0 | Type: decision
+What: `RUN_LIVE_TESTS=1 uv run pytest tests/live` passed on 2026-09-19: connection opens, role is `MINIFLAKE_READONLY`, SafeGraph database visible.
+Why: Stage-end checklist requires live verification when credentials are available.
+Dropped: n/a
+Refs: specs/S0-foundations.md
+
+## 2026-09-19  S0 Cloud Run hello-world deploy verified
+Stage: S0 | Type: decision
+What: Deployed health endpoint to Cloud Run in `us-east4` (project `miniflake`). `GET /api/health` returns 200 with `status: ok`, `environment: production`.
+Why: S0 exit criterion requires a working Cloud Run deployment before product code stages begin.
+Dropped: n/a
+Refs: specs/S0-foundations.md

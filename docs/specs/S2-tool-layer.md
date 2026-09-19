@@ -25,6 +25,7 @@ class Tool(Protocol):
     name: str
     description: str
     input_model: type[BaseModel]
+
     def run(self, repository: CensusRepository, input: BaseModel) -> ToolResult: ...
 ```
 

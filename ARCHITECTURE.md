@@ -2,6 +2,8 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
+**Current implementation (S0):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `scripts/discover_schema.py`, Dockerfile, CI workflow, and deploy script. All other packages in the layout below are planned for later stages.
+
 ## Principles
 
 - Answers come from data returned by tools, never from model memory. Every number in an answer traces back to a tool result and the provenance is returned with the answer.

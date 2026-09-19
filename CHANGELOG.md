@@ -4,6 +4,12 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S0: Foundations and walking skeleton
+- Python project skeleton with `uv`, pydantic-settings configuration, and `GET /api/health`.
+- SafeGraph schema discovery script (`scripts/discover_schema.py`) generating `docs/data/dataset.md`.
+- Dockerfile, GitHub Actions CI (ruff + pytest), and minimal Cloud Run deploy script.
+- Live Snowflake connectivity verified; 2019 and 2020 ACS block-group wide tables discovered.
+
 ### Planning
 - Architecture overview, stage roadmap (S0 to S9) with cut policy, per-stage specifications, ADR-001 to ADR-008, decision log, agent workflow, testing strategy, and the v1 golden question set in `evals/questions.yaml`.
 

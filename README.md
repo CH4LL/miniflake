@@ -6,7 +6,7 @@ Author: Jerzy Marondel.
 
 ## Status
 
-Planning complete; implementation follows the stages in [docs/roadmap.md](docs/roadmap.md). Sections marked "added in Sx" are completed when that stage lands.
+S0 complete: project skeleton, configuration, health endpoint, schema discovery, container image, CI, and Cloud Run hello-world deploy. Later stages are tracked in [docs/roadmap.md](docs/roadmap.md).
 
 ## Evaluating the demo
 
@@ -20,11 +20,51 @@ In short: FastAPI serves a static chat page and a chat API; a conversation servi
 
 ## Running locally
 
-Added in S0 and extended through S7. Will contain: prerequisites, environment variables (names and purposes; values live in your `.env`), `uv` commands to install, run the server, run the CLI, and run tests.
+**Prerequisites:** Python 3.12 (managed by `uv`), a populated `.env` file (see `.env.example`), and Snowflake credentials for live tests or schema discovery.
+
+```bash
+uv sync
+uv run uvicorn app.main:create_app --factory --reload --port 8080
+```
+
+Health check: `GET http://localhost:8080/api/health`
+
+Schema discovery (requires Snowflake credentials in `.env`):
+
+```bash
+uv run python scripts/discover_schema.py
+```
+
+Tests:
+
+```bash
+uv run pytest                    # unit + e2e, no credentials
+RUN_LIVE_TESTS=1 uv run pytest tests/live   # Snowflake connectivity
+```
 
 ## Configuration reference
 
-Added in S0. Lists every setting in `app/config.py` with its purpose. Values are never documented here.
+All settings are read from environment variables (or `.env`) by `app/config.py`.
+
+| Variable | Purpose |
+| :--- | :--- |
+| `APP_NAME` | Service name returned by the health endpoint |
+| `ENVIRONMENT` | Deployment environment label (`local`, `production`, …) |
+| `LOG_LEVEL` | Application log level |
+| `HEALTH_VERSION` | Version string returned by the health endpoint |
+| `SNOWFLAKE_ACCOUNT` | Snowflake account identifier |
+| `SNOWFLAKE_USER` | Service user name |
+| `SNOWFLAKE_ROLE` | Read-only role |
+| `SNOWFLAKE_WAREHOUSE` | Warehouse name |
+| `SNOWFLAKE_DATABASE` | SafeGraph mounted database name |
+| `SNOWFLAKE_SCHEMA` | Schema within the database (default `PUBLIC`) |
+| `SNOWFLAKE_PRIVATE_KEY_PATH` | Path to RSA private key PEM file |
+| `SNOWFLAKE_PRIVATE_KEY` | RSA private key PEM content (alternative to path) |
+| `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` | Optional passphrase for the private key |
+| `GCP_PROJECT` | GCP project id (deploy script) |
+| `GCP_REGION` | Cloud Run and Artifact Registry region |
+| `GCP_ARTIFACT_REPO` | Artifact Registry repository name |
+| `GCP_SERVICE_NAME` | Cloud Run service name |
 
 ## Testing
 

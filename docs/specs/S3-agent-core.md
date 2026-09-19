@@ -24,14 +24,27 @@ Intent classification and refusal templates (S5), conversation persistence (S4),
 
 ```python
 @dataclass
-class Message: role: Literal["user", "assistant", "tool"]; content: list[ContentBlock]
-ContentBlock = TextBlock | ToolUseBlock(id, name, input) | ToolResultBlock(tool_use_id, content, is_error)
+class Message:
+    role: Literal["user", "assistant", "tool"]
+    content: list[ContentBlock]
+
+
+ContentBlock = (
+    TextBlock | ToolUseBlock(id, name, input) | ToolResultBlock(tool_use_id, content, is_error)
+)
+
 
 @dataclass
-class LLMResponse: content: list[ContentBlock]; stop_reason: Literal["end_turn", "tool_use", "max_tokens", "other"]; usage: Usage
+class LLMResponse:
+    content: list[ContentBlock]
+    stop_reason: Literal["end_turn", "tool_use", "max_tokens", "other"]
+    usage: Usage
+
 
 class LLMClient(Protocol):
-    def complete(self, system: str, messages: list[Message], tools: list[ToolSchema], *, timeout_s: float) -> LLMResponse: ...
+    def complete(
+        self, system: str, messages: list[Message], tools: list[ToolSchema], *, timeout_s: float
+    ) -> LLMResponse: ...
 ```
 
 `AnthropicLLMClient` maps these to the Messages API: tools are passed with `strict: true`; model id, max tokens and effort come from configuration; API errors are mapped to `LLMError(retryable: bool)`; a single retry is applied to retryable errors when the remaining budget allows.

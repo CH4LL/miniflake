@@ -6,13 +6,13 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-19 (SafeGraph dataset pivot applied to specs).
+Last updated: 2026-09-19 (S0 done).
 
 ## Stages
 
 | Stage | Name | Est. | Status | Spec |
 | :--- | :--- | ---: | :--- | :--- |
-| S0 | Foundations and walking skeleton | 3.0 h | todo | [S0-foundations.md](specs/S0-foundations.md) |
+| S0 | Foundations and walking skeleton | 3.0 h | done | [S0-foundations.md](specs/S0-foundations.md) |
 | S1 | Data access layer | 3.0 h | todo | [S1-data-layer.md](specs/S1-data-layer.md) |
 | S2 | Tool layer | 2.0 h | todo | [S2-tool-layer.md](specs/S2-tool-layer.md) |
 | S3 | Agent core | 3.0 h | todo | [S3-agent-core.md](specs/S3-agent-core.md) |
