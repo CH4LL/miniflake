@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 from app.agent.prompt import load_templates
 from app.data.models import Provenance
-from app.guardrails.grounding import has_non_exempt_numbers
 from app.llm.types import Message, Usage
 from app.tools.results import (
     Ambiguous,
@@ -93,14 +92,6 @@ class AnswerComposer:
 
         text = "\n".join(part.strip() for part in text_blocks if part.strip())
         if not tool_traces:
-            if has_non_exempt_numbers(text):
-                return AgentAnswer(
-                    text=self._templates["ungrounded_numeric"],
-                    outcome="unanswerable",
-                    provenance=[],
-                    tool_calls=tool_traces,
-                    usage=usage,
-                )
             if text_indicates_unanswerable(text):
                 return AgentAnswer(
                     text=text,
@@ -119,7 +110,7 @@ class AnswerComposer:
 
         outcome = self._outcome_from_traces(tool_traces)
         return AgentAnswer(
-            text=text or self._templates["ungrounded_numeric"],
+            text=text,
             outcome=outcome,
             provenance=provenance,
             tool_calls=tool_traces,

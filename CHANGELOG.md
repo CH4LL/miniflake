@@ -7,7 +7,8 @@ All notable changes to this project. One entry per completed stage or feature; n
 ### S8: Prompt and guardrail hardening
 - Intent classifier no longer treats omitted ACS vintage as missing; the pipeline ignores `missing=vintage` and named population questions do not clarify measure.
 - System prompt defaults unspecified year to the latest 5-year vintage, maps population to B01003, and steers multi-geography questions to `compare`.
-- Output grounding masks ACS field ids; no-tool capability answers may mention years and "5-year".
+- Removed output numeric grounding check and composer no-tools-with-numbers guard; multi-turn answers may cite prior-turn figures.
+- Number extraction for eval value checks moved to `evals/numbers.py`.
 - Golden set schema adds `expected_missing` for clarify items; CF01 expects unanswerable.
 
 ### Fixes

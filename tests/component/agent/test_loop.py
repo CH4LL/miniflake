@@ -146,7 +146,7 @@ def test_period_unavailable_end_turn_is_unanswerable() -> None:
     assert answer.text == "1990 is outside the available ACS vintages."
 
 
-def test_ungrounded_numeric_without_tools_uses_template() -> None:
+def test_numeric_answer_without_tools_passes_through() -> None:
     llm = FakeLLM(
         [
             LLMResponse(
@@ -157,8 +157,8 @@ def test_ungrounded_numeric_without_tools_uses_template() -> None:
         ]
     )
     answer = _loop(llm).run(_user_message("Population of Texas?"), deadline=time.monotonic() + 60)
-    assert answer.outcome == "unanswerable"
-    assert "could not verify" in answer.text.lower()
+    assert answer.outcome == "answer"
+    assert answer.text == "The population of Texas is 30 million."
 
 
 def test_capability_answer_without_tools_is_answer_with_empty_provenance() -> None:

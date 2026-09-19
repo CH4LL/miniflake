@@ -1,6 +1,6 @@
 # ADR-007: Guardrails
 
-Status: accepted (2026-09-19)
+Status: accepted (2026-09-19), amended (2026-09-19)
 
 ## Context
 
@@ -15,16 +15,19 @@ The agent must refuse off-topic and inappropriate requests, resist instruction i
 
 ## Decision
 
-Option 3.
+Option 3, with the output grounding check removed in S8.
 
 - Pre-checks: length and pattern rules maintained in a YAML file, no LLM call.
 - Intent classifier: one structured-output call to the cheaper model, classifying into in scope, needs clarification, off topic, harmful, with the last two turns as context. Fails open to the agent on error, logged.
 - Tool-only data access: the model cannot obtain data except through typed tools (ADR-004).
-- Output grounding check: every numeric token in the answer must match a value in the tool results, allowing displayed-precision rounding and simple derived percentages. Failure replaces the text with a templated explanation while preserving provenance.
 - Refusal and clarification texts are templates in a YAML file.
+
+## Amendment (2026-09-19)
+
+The output numeric grounding check was removed. It rejected legitimate multi-turn answers that cited figures from earlier turns (for example comparing 2019 and 2020 populations across follow-up questions). Numeric grounding now relies on tool-only data access, the system prompt, and eval value checks (scoring only, not runtime blocking).
 
 ## Consequences
 
 - One extra LLM call per turn for classification; budgeted in the loop's time accounting.
-- The grounding check can produce false negatives for legitimate derived figures the matcher does not recognise; these are surfaced as "could not ground" rather than as wrong answers, which is the preferred failure direction. Matcher rules are tuned in S8 from eval results.
-- The grounding check is the last cut candidate; if cut, the reflection must state that grounding relies on tool-only access and the prompt alone.
+- Without post-answer numeric verification, a model can emit invented or mis-cited figures even after calling tools. Mitigation is prompt discipline and eval value checks, not runtime blocking.
+- Multi-turn comparisons and follow-up answers are no longer false-negative blocked by a per-turn payload matcher.

@@ -4,7 +4,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Protocol
 
 from app.agent.composer import AgentAnswer
 from app.agent.loop import AgentLoop
@@ -35,10 +35,6 @@ class CancellationToken:
 class GuardrailHook(Protocol):
     def before_agent(
         self, conversation: Conversation, message: str
-    ) -> GuardrailDecision | None: ...
-
-    def check_answer(
-        self, text: str, payloads: list[dict[str, Any]]
     ) -> GuardrailDecision | None: ...
 
 
@@ -112,7 +108,6 @@ class ConversationService:
                     latency_ms=latency_ms,
                 )
 
-            answer = self._apply_output_guardrails(answer)
             conversation.messages.extend(answer.transcript)
             updated_context = conversation.context.model_copy(deep=True)
             updated_context.update_from_traces(answer.tool_calls)
@@ -147,28 +142,6 @@ class ConversationService:
             conversation_id=conversation.id,
             answer=answer,
             latency_ms=(self._clock() - started) * 1000,
-        )
-
-    def _apply_output_guardrails(self, answer: AgentAnswer) -> AgentAnswer:
-        if self._guardrails is None or answer.outcome != "answer":
-            return answer
-        payloads = [
-            trace.data
-            for trace in answer.tool_calls
-            if trace.result_kind == "success" and trace.data is not None
-        ]
-        if not payloads:
-            return answer
-        decision = self._guardrails.check_answer(answer.text, payloads)
-        if decision is None:
-            return answer
-        return AgentAnswer(
-            text=decision.text,
-            outcome=decision.outcome,
-            provenance=answer.provenance,
-            tool_calls=answer.tool_calls,
-            usage=answer.usage,
-            transcript=answer.transcript,
         )
 
     def _load_or_create(self, conversation_id: str | None) -> Conversation:

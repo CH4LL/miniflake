@@ -457,6 +457,13 @@ Why: Full golden runs were slow and costly; the previous report already showed t
 Dropped: Re-running the 51-item live set before merging the prompt fixes.
 Refs: specs/S8-evaluation-hardening.md
 
+## 2026-09-19  Output numeric grounding check removed
+Stage: S8 | Type: decision
+What: Removed post-answer numeric grounding (`app/guardrails/grounding.py`), composer no-tools-with-numbers guard, and related config, templates, and tests. Eval number extraction lives in `evals/numbers.py` for value-check scoring only.
+Why: Per-turn payload matching rejected legitimate multi-turn answers (vintage comparisons, follow-up citations of prior figures). Tool-only data access and prompt discipline are sufficient; eval value checks catch regressions without blocking users.
+Dropped: Runtime verification that every numeric token matches this turn's tool payloads.
+Refs: ADR-007 amendment, specs/S5-guardrails.md, evals F01–F03
+
 ## 2026-09-19  B17001 aggregation_kind left as rate
 Stage: S8 | Type: decision
 What: Did not retag catalog series B17001 from `rate` to `count` in this pass.

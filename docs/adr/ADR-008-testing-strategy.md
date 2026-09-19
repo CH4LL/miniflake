@@ -16,7 +16,7 @@ The requirements ask for meaningful tests and an explainable strategy. The syste
 
 Option 3.
 
-- **Unit**: pure logic (config, models, SQL guard, retry, grounding matcher, composer classification, cookie signing). No network.
+- **Unit**: pure logic (config, models, SQL guard, retry, composer classification, cookie signing). No network.
 - **Component**: tools and the agent loop against `FakeCensusRepository` and `FakeLLM`.
 - **Contract**: the repository test suite is parametrized over the fake and the Snowflake implementation; the latter runs only when live tests are enabled, keeping the fake honest.
 - **End-to-end (API)**: FastAPI `TestClient` with fakes injected; covers multi-turn context, error envelopes, auth, guardrail outcomes driven by the eval file.

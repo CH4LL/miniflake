@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-import logging
 import re
 from pathlib import Path
-from typing import Any
 
 import yaml
 
 from app.config import Settings
 from app.conversation.store import Conversation
 from app.guardrails.classifier import IntentClassifier, render_context
-from app.guardrails.grounding import check_grounding
 from app.guardrails.prechecks import load_patterns, match_patterns
 from app.guardrails.types import GuardrailDecision, IntentDecision
 
@@ -19,7 +16,6 @@ POPULATION_MEASURE_PATTERN = re.compile(
     r"\b(population|populous|how many people)\b",
     re.IGNORECASE,
 )
-logger = logging.getLogger(__name__)
 
 
 def load_templates(path: Path | None = None) -> dict[str, str]:
@@ -56,20 +52,6 @@ class GuardrailPipeline:
         )
         decision = self._classifier.classify(message, context_excerpt)
         return self._decision_from_intent(decision, message)
-
-    def check_answer(
-        self,
-        text: str,
-        payloads: list[dict[str, Any]],
-    ) -> GuardrailDecision | None:
-        verdict = check_grounding(text, payloads, self._settings)
-        if verdict.grounded:
-            return None
-        logger.info("Grounding check failed; offending tokens: %s", verdict.offending)
-        return GuardrailDecision(
-            outcome="unanswerable",
-            text=self._templates["ungrounded_answer"],
-        )
 
     def _decision_from_intent(
         self, decision: IntentDecision, message: str

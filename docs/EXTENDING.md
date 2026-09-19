@@ -44,11 +44,11 @@ Outline:
 
 ## Adjust guardrails (completed in S5)
 
-Outline: patterns and templates are YAML files under `app/guardrails/`; classifier thresholds and model are configuration values; grounding matcher rules live in `app/guardrails/grounding.py` with unit tests that must be extended for any new rule.
+Outline: patterns and templates are YAML files under `app/guardrails/`; classifier thresholds and model are configuration values.
 
 ## Change the system prompt (completed in S3)
 
 1. Edit `app/agent/prompts/system.md` for role, grounding rules, and answer format.
-2. Edit `app/agent/prompts/templates.yaml` for timeout, iteration-cap, and ungrounded-answer messages.
+2. Edit `app/agent/prompts/templates.yaml` for timeout, iteration-cap, and error messages.
 3. If the prompt needs new runtime values, extend `build_system_prompt` in `app/agent/prompt.py`.
 4. Run `tests/unit/agent/test_prompt.py`, `tests/component/agent/test_loop.py`, and the eval set; record prompt-engineering decisions in the decision log.

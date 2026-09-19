@@ -8,7 +8,6 @@ from app.llm.types import Usage
 def _composer() -> AnswerComposer:
     return AnswerComposer(
         {
-            "ungrounded_numeric": "grounding template",
             "timeout": "timeout template: {{ attempted }}",
             "iteration_cap": "iteration template: {{ attempted }}",
             "llm_error": "llm template: {{ attempted }}",
@@ -149,7 +148,7 @@ def test_end_turn_without_tools_and_without_numbers_is_answer() -> None:
     assert answer.provenance == []
 
 
-def test_end_turn_without_tools_and_with_numbers_uses_grounding_template() -> None:
+def test_end_turn_without_tools_and_with_numbers_is_answer() -> None:
     answer = _composer().compose(
         stop_reason="end_turn",
         text_blocks=["The population is 30 million."],
@@ -157,8 +156,8 @@ def test_end_turn_without_tools_and_with_numbers_uses_grounding_template() -> No
         provenance=[],
         usage=Usage(),
     )
-    assert answer.outcome == "unanswerable"
-    assert answer.text == "grounding template"
+    assert answer.outcome == "answer"
+    assert answer.text == "The population is 30 million."
 
 
 def test_end_turn_without_tools_allows_years_and_five_year_label() -> None:

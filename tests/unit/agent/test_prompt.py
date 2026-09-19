@@ -21,7 +21,6 @@ def _settings(**overrides: Any) -> Settings:
 
 def test_templates_load() -> None:
     templates = load_templates()
-    assert "ungrounded_numeric" in templates
     assert "timeout" in templates
     assert templates["timeout"]
 

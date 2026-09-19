@@ -6,7 +6,7 @@ Rationale and alternatives are in [ADR-008](adr/ADR-008-testing-strategy.md). Th
 
 | Layer | Location | Doubles used | Catches | Runs in CI |
 | :--- | :--- | :--- | :--- | :---: |
-| Unit | `tests/unit/` | None or in-memory stubs | Logic errors in config loading, models, SQL guard and limit clamping, retry policy, number matching in the grounding check, composer outcome classification, cookie signing | yes |
+| Unit | `tests/unit/` | None or in-memory stubs | Logic errors in config loading, models, SQL guard and limit clamping, retry policy, composer outcome classification, cookie signing | yes |
 | Component | `tests/component/` | `FakeCensusRepository`, `FakeLLM` | Tool behaviour for every outcome type; agent loop control flow (iteration cap, deadline, tool error propagation); context resolution | yes |
 | Contract | `tests/component/data/test_repository_contract.py` | Parametrized over fake and real repository | Divergence between the fake and the Snowflake implementation (ordering, latest-date semantics, provenance shape) | fake: yes; real: live only |
 | End-to-end API | `tests/e2e/` | Fakes injected via the app factory | HTTP contract, error envelope, session and auth behaviour, multi-turn follow-ups, guardrail outcomes for eval-derived inputs | yes |

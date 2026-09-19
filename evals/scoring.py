@@ -6,10 +6,10 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.data.rollup import level_for_geo_id, series_id_from_field_id
-from app.guardrails.grounding import extract_numbers
 from app.guardrails.pipeline import load_templates
 from evals.config import EvalSettings
 from evals.loader import EvalItem
+from evals.numbers import extract_numbers
 
 
 class UsageSummary(BaseModel):

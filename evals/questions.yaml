@@ -181,7 +181,7 @@ items:
     question: How does that compare to the whole country?
     expected: answer
     provenance: { series: B01003, level: Nation, aggregation_method: sum }
-    notes: Resolves to US total population via get_value this turn; if comparing to Texas, fetch Texas again. Prior-turn figures are not allowed.
+    notes: Resolves to US total population via get_value this turn; comparisons may cite prior-turn Texas figures or re-fetch both sides.
     status: active
 
   - id: F03
@@ -339,7 +339,7 @@ items:
     question: What is the combined population of California, Oregon and Washington state?
     expected: answer
     provenance: { series: B01003, level: State, aggregation_method: sum }
-    notes: Summing state populations is valid via per-state SUM rollups; derived total passes grounding check if operands are in tool results.
+    notes: Summing state populations is valid via per-state SUM rollups; derived total is acceptable when operands were fetched.
     status: active
 
   # ---------- Off topic ----------

@@ -1,7 +1,3 @@
-ungrounded_numeric: >
-  I could not verify the figures in that answer against the dataset. Please rephrase
-  your question so I can look up the value with the available tools.
-
 timeout: >
   I ran out of time before finishing the lookup. Attempted: {{ attempted }}.
   Please try a simpler or more specific question.

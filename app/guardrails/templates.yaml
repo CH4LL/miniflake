@@ -30,8 +30,3 @@ needs_clarification_vintage: >
 needs_clarification_generic: >
   I need a bit more detail before I can look that up. Please specify the geography
   or the measure.
-
-ungrounded_answer: >
-  I could not verify every figure in that answer against the data returned from the
-  lookup. The provenance below shows what was fetched. Please ask again if you need a
-  grounded answer.

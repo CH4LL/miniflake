@@ -106,7 +106,7 @@ Reads a question from arguments or stdin, runs the loop once with the real Snowf
 - Given a FakeLLM scripted to call `find_geography` then `get_value` then end the turn, when the loop runs, then the answer outcome is `answer`, the text is the model's text, and provenance contains both repository calls.
 - Given a FakeLLM scripted to call `find_geography` for an ambiguous name and then end the turn with a question, then the outcome is `clarify`.
 - Given a FakeLLM scripted to call `get_value` for a year that is not available and then end the turn, then the outcome is `unanswerable` and the text is the model's text.
-- Given a FakeLLM that ends the turn immediately with a numeric answer and no tool calls, then the outcome is `unanswerable` and the text is the grounding template, not the model's text.
+- Given a FakeLLM that ends the turn immediately with a numeric answer and no tool calls, then the outcome is `answer` and the text is the model's text.
 - Given a FakeLLM that ends the turn immediately with a non-numeric capability description and no tool calls, then the outcome is `answer` with empty provenance.
 - Given a deadline in the past, then the loop makes no LLM call and the outcome is `error` with the timeout template.
 - Given a FakeLLM that keeps requesting tools, then the loop stops after `max_iterations` with outcome `error`.

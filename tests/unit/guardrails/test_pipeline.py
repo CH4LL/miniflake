@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from app.config import Settings
@@ -108,19 +107,3 @@ def test_populous_does_not_clarify_measure() -> None:
     )
     decision = pipeline.before_agent(Conversation(), "What are the five most populous states?")
     assert decision is None
-
-
-def test_check_answer_logs_offending_tokens(caplog) -> None:
-    pipeline = GuardrailPipeline(
-        _settings(),
-        IntentClassifier(FakeLLM([]), _settings()),
-    )
-    with caplog.at_level(logging.INFO):
-        decision = pipeline.check_answer(
-            "The population is 99,999,999.",
-            [{"value": 1.0}],
-        )
-    assert decision is not None
-    assert decision.outcome == "unanswerable"
-    assert "offending" in caplog.text.lower()
-    assert "99,999,999" in caplog.text

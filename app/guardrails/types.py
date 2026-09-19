@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 Intent = Literal["in_scope", "needs_clarification", "off_topic", "harmful"]
 MissingElement = Literal["geography", "measure", "vintage", "generic"]
@@ -25,8 +25,3 @@ class IntentDecision(BaseModel):
 class GuardrailDecision(BaseModel):
     outcome: GuardrailOutcome
     text: str
-
-
-class GroundingVerdict(BaseModel):
-    grounded: bool
-    offending: list[str] = Field(default_factory=list)

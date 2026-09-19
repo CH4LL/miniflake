@@ -58,9 +58,9 @@ Exit criteria: end-to-end tests with fakes cover a multi-turn follow-up, expired
 
 ### S5 Guardrails
 
-Goal: deterministic pre-checks, intent classifier with structured output, output numeric grounding check, refusal and clarification templates.
+Goal: deterministic pre-checks, intent classifier with structured output, refusal and clarification templates.
 
-Exit criteria: every `refuse` item in `evals/questions.yaml` is refused without a data call; `clarify` items produce a clarification; grounding check rejects an answer containing a number absent from tool results.
+Exit criteria: every `refuse` item in `evals/questions.yaml` is refused without a data call; `clarify` items produce a clarification.
 
 ### S6 Web UI and demo auth
 
@@ -94,8 +94,6 @@ If the remaining time is insufficient, cut in this order and record each cut in 
 2. Provenance expander polish in the UI (fall back to a raw JSON block).
 3. `get_trend` tool (time series answers).
 4. `compare` tool (the model can call `get_value` twice).
-5. Output numeric grounding check (keep the tool-only data access; document the gap).
-
 Never cut: S0 to S4, the pre-checks and intent classifier of S5, S7, S9.
 
 ## Optional extensions (only after S9)

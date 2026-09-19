@@ -118,15 +118,6 @@ class Settings(BaseSettings):
     guardrail_classifier_thinking: str = Field(
         default="disabled", alias="GUARDRAIL_CLASSIFIER_THINKING"
     )
-    guardrail_grounding_enabled: bool = Field(default=True, alias="GUARDRAIL_GROUNDING_ENABLED")
-    guardrail_grounding_relative_tolerance: float = Field(
-        default=0.01, alias="GUARDRAIL_GROUNDING_RELATIVE_TOLERANCE"
-    )
-    guardrail_grounding_exempt_max_integer: int = Field(
-        default=25, alias="GUARDRAIL_GROUNDING_EXEMPT_MAX_INTEGER"
-    )
-    guardrail_grounding_year_min: int = Field(default=1900, alias="GUARDRAIL_GROUNDING_YEAR_MIN")
-    guardrail_grounding_year_max: int = Field(default=2100, alias="GUARDRAIL_GROUNDING_YEAR_MAX")
 
     session_cookie_name: str = Field(default="miniflake_session", alias="SESSION_COOKIE_NAME")
     session_cookie_secure: bool = Field(default=False, alias="SESSION_COOKIE_SECURE")
