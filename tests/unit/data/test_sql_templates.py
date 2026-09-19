@@ -23,6 +23,7 @@ STATES = load_state_fips_names(PROJECT_ROOT / "fixtures" / "state_fips_names.jso
         "get_latest_vintage.sql",
         "available_vintages.sql",
         "get_time_series.sql",
+        "get_time_series_rollup.sql",
     ],
 )
 def test_template_loads(template_name: str) -> None:

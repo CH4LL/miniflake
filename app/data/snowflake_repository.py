@@ -243,20 +243,39 @@ class SnowflakeCensusRepository:
 
     def get_time_series(self, field_id: str, geo_id: str) -> QueryResult[Observation]:
         field_id = normalize_field_id(field_id)
-        self._require_variable(field_id)
+        variable = self._require_variable(field_id)
+        level = level_for_geo_id(geo_id, self._settings.nation_geo_id)
+        method = resolve_method(variable.aggregation_kind, level)
         fragments = []
         for vintage in self._column_vintages(field_id):
-            fragments.append(
-                render_sql_template(
-                    load_sql_template(SQL_DIR / "get_time_series.sql"),
-                    identifiers={"wide_table": self._wide_table(field_id, vintage)},
-                    fragments={
-                        "vintage": str(vintage),
-                        "block_group_column": BLOCK_GROUP_COLUMN,
-                        "column_name": quote_identifier(field_id),
-                    },
+            if method == AggregationMethod.DIRECT:
+                fragments.append(
+                    render_sql_template(
+                        load_sql_template(SQL_DIR / "get_time_series.sql"),
+                        identifiers={"wide_table": self._wide_table(field_id, vintage)},
+                        fragments={
+                            "vintage": str(vintage),
+                            "block_group_column": BLOCK_GROUP_COLUMN,
+                            "column_name": quote_identifier(field_id),
+                        },
+                    )
                 )
-            )
+            else:
+                group_expression = rollup_group_expression(BLOCK_GROUP_COLUMN, level)
+                parent_filter, having_clause = self._rollup_geo_filters(geo_id, level)
+                fragments.append(
+                    render_sql_template(
+                        load_sql_template(SQL_DIR / "get_time_series_rollup.sql"),
+                        identifiers={"wide_table": self._wide_table(field_id, vintage)},
+                        fragments={
+                            "vintage": str(vintage),
+                            "column_name": quote_identifier(field_id),
+                            "group_expression": group_expression,
+                            "parent_filter": parent_filter,
+                            "having_clause": having_clause,
+                        },
+                    )
+                )
         if not fragments:
             return QueryResult(
                 rows=[],
@@ -265,8 +284,12 @@ class SnowflakeCensusRepository:
                 ),
             )
         sql = " UNION ALL ".join(fragments) + " ORDER BY vintage"
-        params = {"geo_id": geo_id}
-        rows, provenance = self._execute_query(sql, params, AggregationMethod.DIRECT)
+        params = {"geo_id": geo_id} if method == AggregationMethod.DIRECT else {}
+        if method == AggregationMethod.DIRECT:
+            aggregation_method = AggregationMethod.DIRECT
+        else:
+            aggregation_method = AggregationMethod.SUM
+        rows, provenance = self._execute_query(sql, params, aggregation_method)
         observations = [
             Observation(
                 geo_id=str(row[1]),
@@ -276,6 +299,8 @@ class SnowflakeCensusRepository:
             )
             for row in rows
         ]
+        if method == AggregationMethod.SUM and rows:
+            provenance.block_groups_aggregated = sum(int(row[3]) for row in rows)
         return QueryResult(rows=observations, provenance=provenance)
 
     def available_vintages(self, field_id: str, geo_id: str) -> list[int]:
@@ -317,6 +342,23 @@ class SnowflakeCensusRepository:
         if level == GeoLevel.NATION:
             return f"geo_id = '{self._settings.nation_geo_id}'"
         return f"geo_id = '{geo_id}'"
+
+    def _rollup_geo_filters(self, geo_id: str, level: GeoLevel) -> tuple[str, str]:
+        quoted = quote_identifier(BLOCK_GROUP_COLUMN)
+        group_expression = rollup_group_expression(BLOCK_GROUP_COLUMN, level)
+        if level == GeoLevel.NATION:
+            parent_filter = ""
+            having_clause = ""
+        elif level == GeoLevel.STATE:
+            parent_filter = f"AND LEFT({quoted}, 2) = '{geo_id}'"
+            having_clause = f"HAVING {group_expression} = '{geo_id}'"
+        elif level == GeoLevel.COUNTY:
+            parent_filter = f"AND LEFT({quoted}, 5) = '{geo_id}'"
+            having_clause = f"HAVING {group_expression} = '{geo_id}'"
+        else:
+            parent_filter = ""
+            having_clause = ""
+        return parent_filter, having_clause
 
     def _parent_filter(self, parent_geo_id: str | None, level: GeoLevel) -> str:
         if parent_geo_id is None or level == GeoLevel.NATION:

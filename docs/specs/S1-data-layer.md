@@ -84,7 +84,9 @@ ACS wide tables are named `{YEAR}_CBG_B{nn}` (e.g. `2019_CBG_B01`, `2020_CBG_B25
 
 ## SQL templates (`app/data/sql/`)
 
-`search_geographies.sql`, `get_geography.sql`, `search_variables.sql`, `get_variable.sql`, `get_observation_block_group.sql`, `get_observation_rollup.sql`, `get_latest_vintage.sql`, `rank_geographies_rollup.sql`, `get_time_series.sql`, `available_vintages.sql`. Table and column names are injected from configuration and the variable catalog at load time; bind parameters are used for every user-influenced value.
+`search_geographies.sql`, `get_geography.sql`, `search_variables.sql`, `get_variable.sql`, `get_observation_block_group.sql`, `get_observation_rollup.sql`, `get_latest_vintage.sql`, `rank_geographies_rollup.sql`, `get_time_series.sql`, `get_time_series_rollup.sql`, `available_vintages.sql`. Table and column names are injected from configuration and the variable catalog at load time; bind parameters are used for every user-influenced value.
+
+`get_time_series` is level-aware: block-group reads use `get_time_series.sql`; count fields at rolled-up geography use `get_time_series_rollup.sql` (SUM per vintage). Median and rate fields at rolled-up geography raise `UnsupportedAggregationError`.
 
 ## Catalog snapshot (`scripts/snapshot_catalog.py`)
 

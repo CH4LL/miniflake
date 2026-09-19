@@ -168,3 +168,38 @@ Stage: S1 | Type: decision
 What: `RUN_LIVE_TESTS=1` contract and smoke suites passed (15 live tests). Snapshot fixtures store block-group direct observations only; fake rollup sums 12-digit geo ids so pre-aggregated state rows do not override rollups. Eval block groups updated to `480359506002` and `060371011101`.
 Why: Live share lacks some legacy eval block groups; fixture grain must match Snowflake rollup semantics for CI parity.
 Refs: fixtures/sample_observations.json, tests/component/data/test_repository_contract.py
+
+## 2026-09-19  Level-aware get_time_series in data layer
+Stage: S2 | Type: deviation
+What: Extended existing `get_time_series` to roll up count fields at state, county and nation levels via `get_time_series_rollup.sql` rather than adding a new protocol method. Fixed `FakeCensusRepository.available_vintages` to prefix-match block groups under rolled-up geographies.
+Why: Eval T01 requires state-level population trends; the tool layer should make one repository call and keep aggregation dispatch in the data layer.
+Dropped: Per-vintage `get_observations` loop inside the `get_trend` tool.
+Refs: specs/S1-data-layer.md, specs/S2-tool-layer.md, eval T01
+
+## 2026-09-19  Tool descriptions in YAML, not inline strings
+Stage: S2 | Type: decision
+What: LLM-facing tool descriptions live in `app/tools/descriptions.yaml`; registry raises at startup if a registered tool has no description.
+Why: Adjustable prompt text belongs in configuration files per project rules; S3 already stores the system prompt as a file.
+Dropped: Hard-coded description strings in each tool module.
+Refs: specs/S2-tool-layer.md
+
+## 2026-09-19  rank_geographies resolves names with per-row get_geography calls
+Stage: S2 | Type: decision
+What: `rank_geographies` calls `get_geography` once per ranked row to attach human-readable names.
+Why: `rank_geographies` repository results carry only geo ids and values; naming requires a second lookup. Acceptable for S2; batch lookup is an S8 optimization candidate.
+Dropped: Returning geo ids only in rankings.
+Refs: specs/S2-tool-layer.md
+
+## 2026-09-19  S2 spec corrections before implementation
+Stage: S2 | Type: deviation
+What: Ambiguity acceptance criterion retargeted from Springfield (Place, deferred to S10) to Orange County. NotFound suggestions may be empty when relaxed search finds no near matches. Unified `field_id`/`vintage` naming across all tools. Replaced 1YR/5YR trend note with ACS 5-year overlapping-window note.
+Why: Spec drift from S1 Place removal and SafeGraph share characteristics.
+Dropped: Non-empty suggestion list as a hard requirement.
+Refs: specs/S2-tool-layer.md, eval AG01, AG03
+
+## 2026-09-19  S2 tool layer implemented
+Stage: S2 | Type: decision
+What: Implemented six tools, `ToolRegistry`, discriminated `ToolResult` outcomes, configuration-driven limits and disabled tools, and component tests against `FakeCensusRepository`.
+Why: S2 exit criteria require typed tools with explicit outcomes and JSON Schema generation before the agent core in S3.
+Dropped: n/a
+Refs: specs/S2-tool-layer.md, ARCHITECTURE.md

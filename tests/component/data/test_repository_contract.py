@@ -68,6 +68,27 @@ def test_median_at_block_group_direct(repository: Repository) -> None:
     assert result.provenance.aggregation_method == AggregationMethod.DIRECT
 
 
+def test_state_time_series_population_rollup(repository: Repository) -> None:
+    result = repository.get_time_series("B01003e1", "48")
+    assert len(result.rows) >= 1
+    vintages = {row.vintage for row in result.rows}
+    assert vintages
+    assert all(row.geo_id == "48" for row in result.rows)
+    assert all(row.value > 0 for row in result.rows)
+    assert result.provenance.aggregation_method == AggregationMethod.SUM
+
+
+def test_available_vintages_for_state_non_empty(repository: Repository) -> None:
+    vintages = repository.available_vintages("B01003e1", "48")
+    assert vintages
+    assert all(isinstance(vintage, int) for vintage in vintages)
+
+
+def test_median_time_series_at_county_raises(repository: Repository) -> None:
+    with pytest.raises(UnsupportedAggregationError):
+        repository.get_time_series("B19013e1", "17031")
+
+
 def test_read_only_guard_rejects_non_select() -> None:
     with pytest.raises(ReadOnlyViolationError):
         assert_read_only("DELETE FROM t")

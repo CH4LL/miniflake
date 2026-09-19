@@ -4,12 +4,16 @@ How to add capability without touching more than the layer concerned. Component 
 
 ## Add a tool (completed in S2)
 
-Outline:
+1. Create `app/tools/<name>.py` with:
+   - A pydantic input model subclassing `ToolInput` from `app/tools/base.py` (`extra="forbid"` so schemas get `additionalProperties: false`).
+   - A `Success` payload model for the happy path.
+   - A class implementing the `Tool` protocol: `name`, `description`, `input_model`, and `run(repository, input) -> ToolResult`.
+2. Add an LLM-facing description to `app/tools/descriptions.yaml`.
+3. If the tool needs a query the repository does not offer, add a method to `CensusRepository`, a SQL template under `app/data/sql/`, and implementations in both repositories; extend `tests/component/data/test_repository_contract.py`.
+4. Register the tool in `default_registry` in `app/tools/registry.py`.
+5. Write component tests under `tests/component/tools/` covering `Success` and every applicable outcome type (`Ambiguous`, `NotFound`, `PeriodUnavailable`, `UnsupportedRequest`). Add eval items to `evals/questions.yaml` when the tool changes agent behaviour.
 
-1. Create `app/tools/<name>.py` with a pydantic input model, a result data model, an LLM-facing description string, and a `run(repository, input) -> ToolResult` function that returns `Success` or one of the explicit outcome types (`Ambiguous`, `NotFound`, `PeriodUnavailable`, `UnsupportedRequest`).
-2. If the tool needs a query the repository does not offer, add a method to the `CensusRepository` protocol, a SQL template under `app/data/sql/`, and implementations in both the Snowflake and fake repositories; extend the contract test.
-3. Register the tool in `default_registry` in `app/tools/registry.py`. The system prompt lists tools from the registry automatically.
-4. Write component tests under `tests/component/tools/` for the success path and each outcome type, and add eval items to `evals/questions.yaml` covering the new question type.
+Return explicit outcome types rather than raising for ambiguity or absence. Collect provenance from every repository call in call order.
 
 ## Add a data source (completed in S1)
 

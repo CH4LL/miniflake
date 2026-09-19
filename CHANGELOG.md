@@ -4,6 +4,12 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S2: Tool layer
+- Six typed tools over `CensusRepository` with discriminated `ToolResult` outcomes (`Success`, `Ambiguous`, `NotFound`, `PeriodUnavailable`, `UnsupportedRequest`, `ToolError`).
+- `ToolRegistry` emitting JSON Schema tool definitions and dispatching calls with validation and error wrapping.
+- LLM tool descriptions in `app/tools/descriptions.yaml`; tools disableable via configuration for cut policy.
+- Level-aware `get_time_series` rollup in the data layer for state and county trends.
+
 ### Tooling
 - Pre-commit hooks for Ruff format and lint; agent workflow documents explicit local checks matching CI.
 

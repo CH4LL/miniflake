@@ -2,7 +2,7 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
-**Current implementation (S0–S1):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Tool, agent, conversation, guardrail, and web packages remain planned for later stages.
+**Current implementation (S0–S2):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Agent, conversation, guardrail, and web packages remain planned for later stages.
 
 ## Principles
 
@@ -49,7 +49,7 @@ flowchart TB
 | Guardrails | `app/guardrails/` | Pre-checks, intent classifier, output grounding check, refusal and clarification templates. | LLM |
 | Agent | `app/agent/` | Tool-use loop, system prompt file, `AnswerComposer`. | LLM, Tools |
 | LLM | `app/llm/` | `LLMClient` protocol, Anthropic implementation, scripted `FakeLLM`. | Provider SDK |
-| Tools | `app/tools/` | One module per tool, `ToolRegistry`, typed inputs/outputs, provenance. | Data |
+| Tools | `app/tools/` | Six typed tools (`find_geography`, `find_variable`, `get_value`, `rank_geographies`, `get_trend`, `compare`), `ToolRegistry`, discriminated `ToolResult` outcomes, provenance. | Data |
 | Data | `app/data/` | `CensusRepository` protocol, Snowflake implementation, fake implementation, SQL templates, variable and geography catalog. | Snowflake connector |
 | Config | `app/config.py` | pydantic-settings model holding every adjustable value. | Environment |
 
@@ -105,6 +105,21 @@ The agent works over the [SafeGraph US Open Census listing](https://app.snowflak
 | `median`, `rate` | Direct read | Not supported; returns `UnsupportedRequest` |
 
 A snapshot of the variable catalog (with `aggregation_kind` tags) and supported geographies is stored under `fixtures/` and drives both the fake repository and the tool descriptions given to the LLM.
+
+## Tool layer
+
+Each tool returns a discriminated `ToolResult` with a `kind` field:
+
+| Kind | Meaning |
+| :--- | :--- |
+| `success` | Data and provenance from repository calls |
+| `ambiguous` | Multiple plausible matches; `hint` guides disambiguation |
+| `not_found` | No match; optional `suggestions` from relaxed search |
+| `period_unavailable` | Geography and variable exist but not for the requested vintage |
+| `unsupported_request` | Well-formed but not expressible (e.g. median at county level) |
+| `tool_error` | Repository failure; `retryable` indicates whether to retry |
+
+`ToolRegistry.schemas()` emits provider-neutral JSON Schema for enabled tools. `dispatch` validates input, runs the tool, and maps repository errors to `ToolError` without propagating exceptions.
 
 ## Testing
 

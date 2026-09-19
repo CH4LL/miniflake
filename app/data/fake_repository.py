@@ -270,34 +270,70 @@ class FakeCensusRepository:
 
     def get_time_series(self, field_id: str, geo_id: str) -> QueryResult[Observation]:
         field_id = normalize_field_id(field_id)
-        self._require_variable(field_id)
-        rows = sorted(
-            [
-                observation
-                for observation in self._observations
-                if observation.field_id == field_id and observation.geo_id == geo_id
-            ],
-            key=lambda observation: observation.vintage,
-        )
+        variable = self._require_variable(field_id)
+        level = level_for_geo_id(geo_id, self._nation_geo_id)
+        method = resolve_method(variable.aggregation_kind, level)
+        if method == AggregationMethod.DIRECT:
+            rows = sorted(
+                [
+                    observation
+                    for observation in self._observations
+                    if observation.field_id == field_id and observation.geo_id == geo_id
+                ],
+                key=lambda observation: observation.vintage,
+            )
+            return QueryResult(
+                rows=rows,
+                provenance=self._provenance(
+                    sql="fake://get_time_series",
+                    parameters={"field_id": field_id, "geo_id": geo_id},
+                    row_count=len(rows),
+                    aggregation_method=AggregationMethod.DIRECT,
+                ),
+            )
+        rows: list[Observation] = []
+        block_groups_aggregated = 0
+        for vintage in self.available_vintages(field_id, geo_id):
+            value, count = self._rollup_value(field_id, geo_id, level, vintage)
+            block_groups_aggregated += count
+            rows.append(
+                Observation(
+                    geo_id=geo_id,
+                    field_id=field_id,
+                    vintage=vintage,
+                    value=value,
+                )
+            )
         return QueryResult(
             rows=rows,
             provenance=self._provenance(
-                sql="fake://get_time_series",
+                sql="fake://get_time_series_rollup",
                 parameters={"field_id": field_id, "geo_id": geo_id},
                 row_count=len(rows),
-                aggregation_method=AggregationMethod.DIRECT,
+                aggregation_method=AggregationMethod.SUM,
+                block_groups_aggregated=block_groups_aggregated or None,
             ),
         )
 
     def available_vintages(self, field_id: str, geo_id: str) -> list[int]:
+        field_id = normalize_field_id(field_id)
+        level = level_for_geo_id(geo_id, self._nation_geo_id)
+        if level == GeoLevel.BLOCK_GROUP:
+            return sorted(
+                {
+                    observation.vintage
+                    for observation in self._observations
+                    if observation.field_id == field_id and observation.geo_id == geo_id
+                }
+            )
+        prefix_len = prefix_length(level)
         return sorted(
             {
                 observation.vintage
                 for observation in self._observations
-                if (
-                    observation.field_id == normalize_field_id(field_id)
-                    and observation.geo_id == geo_id
-                )
+                if observation.field_id == field_id
+                and self._is_block_group_grain(observation.geo_id)
+                and (prefix_len is None or observation.geo_id.startswith(geo_id[:prefix_len]))
             }
         )
 

@@ -1,9 +1,9 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Self
+from typing import Annotated, Self
 
 from pydantic import Field, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -66,6 +66,14 @@ class Settings(BaseSettings):
         default="fixtures/state_fips_names.json",
         alias="STATE_FIPS_NAMES_PATH",
     )
+    tool_max_variable_candidates: int = Field(default=5, alias="TOOL_MAX_VARIABLE_CANDIDATES")
+    tool_max_geography_candidates: int = Field(default=5, alias="TOOL_MAX_GEOGRAPHY_CANDIDATES")
+    tool_rank_limit_max: int = Field(default=25, alias="TOOL_RANK_LIMIT_MAX")
+    tool_compare_max_geographies: int = Field(default=5, alias="TOOL_COMPARE_MAX_GEOGRAPHIES")
+    tool_suggestion_limit: int = Field(default=5, alias="TOOL_SUGGESTION_LIMIT")
+    disabled_tools: Annotated[list[str], NoDecode] = Field(
+        default_factory=list, alias="DISABLED_TOOLS"
+    )
 
     def acs_wide_table_name(self, vintage: int, series_prefix: str) -> str:
         return self.acs_wide_table_template.format(vintage=vintage, series_prefix=series_prefix)
@@ -93,6 +101,13 @@ class Settings(BaseSettings):
     def parse_acs_vintages(cls, value: object) -> object:
         if isinstance(value, str):
             return [int(part.strip()) for part in value.split(",") if part.strip()]
+        return value
+
+    @field_validator("disabled_tools", mode="before")
+    @classmethod
+    def parse_disabled_tools(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [part.strip() for part in value.split(",") if part.strip()]
         return value
 
     @model_validator(mode="after")

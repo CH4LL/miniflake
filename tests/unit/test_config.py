@@ -103,3 +103,39 @@ def test_data_layer_settings_defaults(isolated_env: None, apply_env) -> None:
         settings.metadata_field_descriptions_table(2019) == "2019_METADATA_CBG_FIELD_DESCRIPTIONS"
     )
     assert settings.fixtures_path() == Path("fixtures")
+
+
+def test_tool_settings_defaults(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.tool_max_variable_candidates == 5
+    assert settings.tool_max_geography_candidates == 5
+    assert settings.tool_rank_limit_max == 25
+    assert settings.tool_compare_max_geographies == 5
+    assert settings.tool_suggestion_limit == 5
+    assert settings.disabled_tools == []
+
+
+def test_disabled_tools_parsed_from_comma_separated_string(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+            "DISABLED_TOOLS": "get_trend, compare",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.disabled_tools == ["get_trend", "compare"]

@@ -64,13 +64,13 @@ Behaviour: rank at the given level, optionally within a parent. Only `count` fie
 
 ### get_trend
 
-Input: `variable_id: str`, `geo_id: str`, `start_year: int | None`, `end_year: int | None`.
-Behaviour: return the time series, with a note on measurement period consistency (1YR and 5YR values are never mixed in one series; the tool picks the period with the longest coverage and reports it).
+Input: `field_id: str`, `geo_id: str`, `start_year: int | None`, `end_year: int | None`.
+Behaviour: return the time series via `get_time_series` (level-aware rollup in the repository). Include a note that all vintages are ACS 5-year estimates with overlapping measurement windows across consecutive vintages.
 
 ### compare
 
-Input: `variable_id: str`, `geo_ids: list[str]` (2 to a configured maximum), `year: int | None`.
-Behaviour: fetch observations for all geographies at a common date. If a common date does not exist, return `PeriodUnavailable` listing dates per geography. Return `Success` with values and the absolute and relative difference between the first two entries.
+Input: `field_id: str`, `geo_ids: list[str]` (2 to a configured maximum), `vintage: int | None`.
+Behaviour: fetch observations for all geographies at a common vintage. If a common vintage does not exist, return `PeriodUnavailable` listing vintages per geography. Return `Success` with values and the absolute and relative difference between the first two entries.
 
 ## Registry (`app/tools/registry.py`)
 
@@ -86,8 +86,8 @@ Each `Success` carries the list of `Provenance` objects from every repository ca
 ## Acceptance criteria
 
 - Given the fake repository, when `find_geography("Texas", level=State)` runs, then the result is `Success` with the Texas geography.
-- Given `find_geography("Springfield")`, then the result is `Ambiguous` with candidates in more than one state and a hint mentioning the state.
-- Given `find_geography("Atlantis")`, then the result is `NotFound` with a non-empty suggestion list.
+- Given `find_geography("Orange County")`, then the result is `Ambiguous` with candidates in more than one state and a hint mentioning the state.
+- Given `find_geography("Atlantis")`, then the result is `NotFound` naming the query, with suggestions when the relaxed search finds near matches.
 - Given `get_value` for a valid variable and geography with a year outside the fixture range, then the result is `PeriodUnavailable` listing the available years.
 - Given `get_value` with no vintage, then the result uses the latest vintage and provenance names it.
 - Given `get_value` for a median field at county level, then the result is `UnsupportedRequest`.
@@ -108,7 +108,7 @@ Each `Success` carries the list of `Provenance` objects from every repository ca
 
 ## Files
 
-- `app/tools/__init__.py`, `base.py`, `results.py`, `registry.py`
+- `app/tools/__init__.py`, `base.py`, `results.py`, `registry.py`, `descriptions.yaml`
 - `app/tools/find_geography.py`, `find_variable.py`, `get_value.py`, `rank_geographies.py`, `get_trend.py`, `compare.py`
 - tests listed above
 
