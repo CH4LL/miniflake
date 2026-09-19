@@ -31,6 +31,7 @@ def _settings(**overrides: Any) -> Settings:
         "SNOWFLAKE_DATABASE": "TEST",
         "SNOWFLAKE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
         "SESSION_COOKIE_NAME": "miniflake_session",
+        "DEMO_AUTH_ENABLED": False,
     }
     base.update(overrides)
     return Settings(**base, _env_file=None)

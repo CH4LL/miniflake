@@ -351,3 +351,45 @@ What: `RUN_LIVE_TESTS=1 uv run pytest tests/live/test_guardrails_live.py` passed
 Why: Stage-end checklist requires opt-in live verification when credentials are available.
 Dropped: n/a
 Refs: specs/S5-guardrails.md
+
+## 2026-09-19  S6 GET /api/session endpoint
+Stage: S6 | Type: deviation
+What: Added `GET /api/session` returning `auth_required` and `authenticated` so the chat page can choose login vs chat view on load.
+Why: The spec lists only `POST /api/login`; the page needs an open endpoint to detect auth state without attempting a protected call.
+Dropped: Inferring auth state from a failed `/api/chat` probe.
+Refs: specs/S6-web-ui-auth.md, app/api/auth.py
+
+## 2026-09-19  S6 ToolCallResponse widened for provenance panel
+Stage: S6 | Type: decision
+What: `ToolCallResponse` now includes `input` and `data` from `ToolCallTrace`; provenance panel shows variable, geography, vintage from tool result data plus SQL from provenance records.
+Why: `Provenance` alone has no variable or geography names; the spec requires them in the provenance expander.
+Dropped: Enriching `Provenance` model with display names.
+Refs: app/api/chat.py, web/app.js
+
+## 2026-09-19  S6 auth defaults enabled, secrets validated at startup
+Stage: S6 | Type: decision
+What: `DEMO_AUTH_ENABLED` defaults to `true`; `DemoAuth` raises at `create_app` time if `DEMO_PASSPHRASE` or `AUTH_SIGNING_SECRET` is missing. Tests set `DEMO_AUTH_ENABLED=false` explicitly.
+Why: Fail-closed for the public demo; keeps `Settings` construction unchanged in existing unit tests.
+Dropped: Validating auth secrets in pydantic `Settings` model_validator.
+Refs: app/api/auth.py, app/config.py, ADR-006
+
+## 2026-09-19  S6 Dockerfile includes web assets
+Stage: S6 | Type: deviation
+What: Added `COPY web ./web` to Dockerfile ahead of S7.
+Why: Container must serve the chat page; minimal forward step to avoid a broken image between stages.
+Dropped: Waiting for S7 to copy web assets.
+Refs: Dockerfile, specs/S7-deployment.md
+
+## 2026-09-19  S6 Web UI and demo auth implemented
+Stage: S6 | Type: decision
+What: Implemented static chat page (`web/`), demo auth (`app/api/auth.py`), static serving (`app/api/static.py`), unit and e2e auth tests, and opt-in Playwright browser smoke test via `tests/e2e/fake_server.py`.
+Why: S6 exit criteria require a browser-testable chat page with passphrase gate protecting the API.
+Dropped: n/a
+Refs: specs/S6-web-ui-auth.md, ARCHITECTURE.md, ADR-006
+
+## 2026-09-19  S6 live verification passed
+Stage: S6 | Type: decision
+What: With `DEMO_PASSPHRASE` and `AUTH_SIGNING_SECRET` configured in `.env`, full pytest suite (209 passed), Playwright browser smoke test (`RUN_BROWSER_TESTS=1`), and local server startup at `http://127.0.0.1:8000` all succeeded on 2026-09-19.
+Why: Stage-end checklist requires opt-in live verification when credentials are available.
+Dropped: n/a
+Refs: specs/S6-web-ui-auth.md

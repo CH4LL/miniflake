@@ -10,7 +10,7 @@ A minimal, dependable chat page that shows answers with their provenance, plus a
 
 1. Static page served by FastAPI at `/`: message list, input box, send button, loading indicator, error banner, "New conversation" button.
 2. Per assistant message: outcome badge (answer, clarification, unanswerable, refused, error) and a collapsible provenance panel listing each tool call, the variable and geography names, year, measurement period, and the SQL with parameters.
-3. `POST /api/login` exchanging the passphrase for a signed, HTTP-only cookie; middleware requiring it for `/api/chat` and `/api/conversations/*`; `/api/health` stays open.
+3. `POST /api/login` exchanging the passphrase for a signed, HTTP-only cookie; `GET /api/session` returning `auth_required` and `authenticated` so the page can choose the login or chat view; middleware requiring the cookie for `/api/chat` and `/api/conversations/*`; `/api/health` stays open.
 4. Login form shown when the cookie is missing or invalid.
 
 ## Out of scope
@@ -43,7 +43,7 @@ Build tooling, frameworks, streaming, mobile-specific layouts beyond responsive 
 ## Files
 
 - `web/index.html`, `web/app.js`, `web/styles.css`
-- `app/api/auth.py`, `app/api/static.py`
+- `app/api/auth.py`, `app/api/static.py`, `tests/e2e/fake_server.py`
 - `app/main.py` wiring
 
 ## Documentation updates at stage end

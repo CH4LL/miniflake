@@ -22,6 +22,8 @@ class ToolCallResponse(BaseModel):
     name: str
     result_kind: str
     duration_ms: float
+    input: dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] | None = None
 
 
 class ChatResponse(BaseModel):
@@ -61,6 +63,8 @@ def _chat_response(turn: Any) -> ChatResponse:
                 name=trace.name,
                 result_kind=trace.result_kind,
                 duration_ms=trace.duration_ms,
+                input=trace.input,
+                data=trace.data,
             )
             for trace in answer.tool_calls
         ],

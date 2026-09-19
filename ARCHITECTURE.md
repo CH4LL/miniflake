@@ -2,7 +2,7 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
-**Current implementation (S0–S5):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/` (`GET /api/health`, `POST /api/chat`, `POST /api/conversations/reset`, error envelope, request-id middleware), `app/conversation/` (`ConversationStore` protocol, `InMemoryConversationStore`, `ConversationService`, `ResolvedContext`, history windowing), `app/guardrails/` (deterministic pre-checks, intent classifier, output grounding check, YAML patterns and templates, `GuardrailPipeline`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop`, file-based system prompt with recently-discussed context, `AnswerComposer`, per-turn transcript, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Web UI remains planned for S6.
+**Current implementation (S0–S6):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/` (`GET /api/health`, `POST /api/login`, `GET /api/session`, `POST /api/chat`, `POST /api/conversations/reset`, demo auth middleware, error envelope, request-id middleware, static file serving), `web/` (vanilla JS chat page with provenance expander and login form), `app/conversation/` (`ConversationStore` protocol, `InMemoryConversationStore`, `ConversationService`, `ResolvedContext`, history windowing), `app/guardrails/` (deterministic pre-checks, intent classifier, output grounding check, YAML patterns and templates, `GuardrailPipeline`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop`, file-based system prompt with recently-discussed context, `AnswerComposer`, per-turn transcript, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script.
 
 ## Principles
 
@@ -31,7 +31,7 @@ flowchart TB
 ### Request lifecycle
 
 1. The browser posts a message and a session cookie to `POST /api/chat`.
-2. Auth middleware validates the demo session; the API layer wraps everything in a request-level time budget and a uniform error envelope.
+2. Auth middleware validates the HMAC-signed demo cookie on protected routes (`/api/chat`, `/api/conversations/*`); `/api/health`, `/api/login`, `/api/session`, and the static page stay open. The API layer wraps everything in a request-level time budget and a uniform error envelope.
 3. `ConversationService` loads the conversation from `ConversationStore`, appends the user turn, and passes the history plus resolved context (last geography, measure, period) to the guardrails.
 4. Guardrails run deterministic pre-checks, then an intent classification. Off-topic or harmful input is answered with a templated refusal without touching the data layer. Underspecified input is answered with a clarification.
 5. `AgentLoop` calls the LLM with the system prompt, conversation history and tool schemas. The LLM either answers or requests tool calls; the loop executes tools through `ToolRegistry`, feeds results back, and repeats until the model answers, the iteration cap is hit, or the time budget expires.
@@ -43,8 +43,8 @@ flowchart TB
 
 | Layer | Package | Responsibility | Depends on |
 | :--- | :--- | :--- | :--- |
-| Web UI | `web/` | Static chat page: message list, loading state, provenance expander, error display. | API contract only |
-| API | `app/api/` | Routes, demo auth middleware, error envelope, request timeout. | Conversation |
+| Web UI | `web/` | Static chat page: login form, message list, loading state, outcome badges, provenance expander, error display. Vanilla JS with `fetch`. | API contract only |
+| API | `app/api/` | Routes, demo auth middleware (HMAC-signed cookie), static file serving, error envelope, request timeout. | Conversation |
 | Conversation | `app/conversation/` | `ConversationStore` protocol, in-memory TTL implementation, `ConversationService` orchestrating guardrails and agent. | Guardrails, Agent |
 | Guardrails | `app/guardrails/` | Pre-checks, intent classifier, output grounding check, refusal and clarification templates. | LLM |
 | Agent | `app/agent/` | Tool-use loop, system prompt file, `AnswerComposer`. | LLM, Tools |

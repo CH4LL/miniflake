@@ -38,6 +38,7 @@ def make_settings_env(**overrides: str) -> dict[str, str]:
         "SNOWFLAKE_SCHEMA": "PUBLIC",
         "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
         "ANTHROPIC_API_KEY": "test-anthropic-key",
+        "DEMO_AUTH_ENABLED": "false",
     }
     base.update(overrides)
     return base

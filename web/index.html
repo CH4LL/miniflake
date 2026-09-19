@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Miniflake</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Miniflake</h1>
+      <p class="subtitle">US population data from the American Community Survey</p>
+    </header>
+
+    <div id="error-banner" class="error-banner hidden" role="alert">
+      <span id="error-message"></span>
+      <span id="error-request-id" class="request-id"></span>
+    </div>
+
+    <section id="login-view" class="hidden">
+      <form id="login-form">
+        <label for="passphrase">Demo passphrase</label>
+        <input type="password" id="passphrase" name="passphrase" autocomplete="current-password" required>
+        <button type="submit">Log in</button>
+      </form>
+    </section>
+
+    <section id="chat-view" class="hidden">
+      <div class="toolbar">
+        <button type="button" id="new-conversation">New conversation</button>
+        <span id="loading-indicator" class="loading hidden">
+          Thinking… <span id="elapsed-seconds">0</span>s
+        </span>
+      </div>
+
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <form id="chat-form" class="chat-form">
+        <textarea
+          id="message-input"
+          rows="3"
+          placeholder="Ask a question about US population data…"
+          aria-label="Message"
+        ></textarea>
+        <button type="submit" id="send-button">Send</button>
+      </form>
+    </section>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

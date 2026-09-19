@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-ErrorCode = Literal["invalid_input", "timeout", "upstream_unavailable", "internal"]
+ErrorCode = Literal["invalid_input", "timeout", "upstream_unavailable", "internal", "unauthorized"]
 
 
 class ErrorBody(BaseModel):

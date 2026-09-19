@@ -4,15 +4,35 @@ Miniflake answers questions about the US population using American Community Sur
 
 ## Current state
 
-The agent is available over HTTP and via the command-line runner. Multi-turn conversations preserve full turn transcripts server-side and inject resolved geography, variable, and vintage facts into follow-up turns. The web chat page and demo login arrive in later stages.
+The agent is available over the web chat page, HTTP API, and command-line runner. Multi-turn conversations preserve full turn transcripts server-side and inject resolved geography, variable, and vintage facts into follow-up turns. Demo authentication protects the API and chat page when enabled.
 
 ## Using the chat page
 
-Added in S6.
+Open the application root URL in a browser (for example `http://localhost:8000/` when running locally). If demo auth is enabled, you will see a passphrase login form first.
+
+The chat page provides:
+
+- A message list showing your questions and the agent's answers
+- An outcome badge on each assistant message (`answer`, `clarify`, `unanswerable`, `refuse`, or `error`)
+- A collapsible provenance panel on each assistant message showing tool calls, variable and geography names, year, and the SQL with parameters
+- A loading indicator with elapsed seconds while a request is in progress
+- An error banner with the request id when something goes wrong
+- A **New conversation** button to clear server-side history and start fresh
+
+**Keyboard shortcuts:** Enter sends the message; Shift+Enter inserts a newline.
 
 ## Logging in to the demo
 
-Added in S6 and S7.
+When `DEMO_AUTH_ENABLED` is true (the default), the chat page and protected API routes require a passphrase.
+
+1. Open the application URL in a browser.
+2. Enter the demo passphrase (configured as `DEMO_PASSPHRASE` in the environment).
+3. Click **Log in**. A signed, HTTP-only cookie is set for the session.
+4. You can now send messages and use **New conversation**.
+
+Failed logins return a generic error without revealing whether the passphrase was wrong. The health endpoint (`/api/health`) stays open without authentication.
+
+To disable auth for local development, set `DEMO_AUTH_ENABLED=false` in your `.env` file.
 
 ## Asking good questions
 
@@ -43,7 +63,13 @@ Role-play overrides embedded in otherwise valid census questions are answered fr
 
 ## Reading provenance
 
-Added in S6. Will explain the provenance panel: which variable, geography and year backed each figure, and the query that produced it.
+Each assistant message has a **Provenance** expander. Click it to see:
+
+- **Tool calls** — which tools ran, their inputs, and result kinds. For successful lookups, the resolved variable name, geography name, and vintage appear.
+- **SQL queries** — the parametrized SQL executed against Snowflake, with parameters listed below the query text.
+- **Aggregation** — for rolled-up geographies, the aggregation method (for example `sum` across block groups).
+
+Use provenance to verify that every number in the answer traces back to a specific data query.
 
 ## Command-line runner
 
@@ -119,4 +145,10 @@ Errors return `{"error": {"code", "message", "request_id"}}`. Codes include `inv
 
 When the request exceeds the configured response budget, the API returns HTTP 200 with `outcome: "error"` and a timeout message rather than a 5xx.
 
-Demo authentication for the API arrives in S6.
+### Authentication
+
+`POST /api/login` with JSON body `{"passphrase": "your-passphrase"}` exchanges the passphrase for a signed auth cookie. Protected routes (`POST /api/chat`, `POST /api/conversations/reset`) return `401` with code `unauthorized` when the cookie is missing or invalid.
+
+`GET /api/session` returns `{"auth_required": bool, "authenticated": bool}` so the chat page can decide whether to show the login form.
+
+Required environment variables when auth is enabled: `DEMO_PASSPHRASE`, `AUTH_SIGNING_SECRET`. See `.env.example`.

@@ -130,6 +130,12 @@ class Settings(BaseSettings):
     session_cookie_secure: bool = Field(default=False, alias="SESSION_COOKIE_SECURE")
     session_cookie_samesite: str = Field(default="lax", alias="SESSION_COOKIE_SAMESITE")
 
+    demo_auth_enabled: bool = Field(default=True, alias="DEMO_AUTH_ENABLED")
+    demo_passphrase: str | None = Field(default=None, alias="DEMO_PASSPHRASE")
+    auth_signing_secret: str | None = Field(default=None, alias="AUTH_SIGNING_SECRET")
+    auth_cookie_name: str = Field(default="miniflake_auth", alias="AUTH_COOKIE_NAME")
+    auth_cookie_max_age_seconds: int = Field(default=86400, alias="AUTH_COOKIE_MAX_AGE_SECONDS")
+
     @property
     def api_request_timeout_seconds(self) -> float:
         return max(

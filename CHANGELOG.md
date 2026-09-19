@@ -4,6 +4,13 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S6: Web UI and demo auth
+- Static chat page at `/` with message list, outcome badges, provenance expander, loading indicator, error banner, and new-conversation button.
+- `POST /api/login` and `GET /api/session` for passphrase-based demo authentication with HMAC-signed HTTP-only cookie.
+- Auth middleware protecting `/api/chat` and `/api/conversations/*`; disabled via `DEMO_AUTH_ENABLED=false`.
+- `ToolCallResponse` extended with `input` and `data` for provenance display.
+- Unit, API end-to-end, and opt-in Playwright browser smoke tests.
+
 ### S5: Guardrails
 - Layered guardrails: deterministic pre-checks (`patterns.yaml`), intent classifier on the cheap model, and output numeric grounding check.
 - `GuardrailPipeline` wired into `ConversationService` before and after the agent loop; guardrail refusals and clarifications are persisted as turns.

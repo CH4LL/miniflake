@@ -19,6 +19,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx>=0.28.0",
+    "playwright>=1.49.0",
     "pre-commit>=4.0.0",
     "pytest>=8.3.0",
     "ruff>=0.9.0",
@@ -43,4 +44,5 @@ pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "live: tests requiring live Snowflake credentials",
+    "browser: tests requiring Playwright and a running server",
 ]
