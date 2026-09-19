@@ -1,0 +1,19 @@
+ungrounded_numeric: >
+  I could not verify the figures in that answer against the dataset. Please rephrase
+  your question so I can look up the value with the available tools.
+
+timeout: >
+  I ran out of time before finishing the lookup. Attempted: {{ attempted }}.
+  Please try a simpler or more specific question.
+
+iteration_cap: >
+  I reached the maximum number of lookup steps. Attempted: {{ attempted }}.
+  Please try a simpler or more specific question.
+
+llm_error: >
+  I could not complete the request because the language model stopped unexpectedly.
+  Attempted: {{ attempted }}.
+
+tool_error: >
+  A data lookup failed before I could finish answering. Attempted: {{ attempted }}.
+  Please try again or rephrase your question.

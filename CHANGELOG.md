@@ -4,6 +4,12 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S3: Agent core
+- `LLMClient` protocol with provider-neutral messages, `AnthropicLLMClient` (strict tools, adaptive thinking, configurable effort), and scripted `FakeLLM`.
+- `AgentLoop` with iteration cap, wall-clock budget, tool dispatch, and opaque thinking-block passthrough.
+- File-based system prompt and error templates; `AnswerComposer` with grounded outcome classification.
+- `scripts/chat_cli.py` for manual single-turn runs; opt-in live lookup test against Snowflake and Anthropic.
+
 ### S2: Tool layer
 - Six typed tools over `CensusRepository` with discriminated `ToolResult` outcomes (`Success`, `Ambiguous`, `NotFound`, `PeriodUnavailable`, `UnsupportedRequest`, `ToolError`).
 - `ToolRegistry` emitting JSON Schema tool definitions and dispatching calls with validation and error wrapping.

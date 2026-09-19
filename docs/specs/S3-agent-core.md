@@ -30,7 +30,10 @@ class Message:
 
 
 ContentBlock = (
-    TextBlock | ToolUseBlock(id, name, input) | ToolResultBlock(tool_use_id, content, is_error)
+    TextBlock
+    | ToolUseBlock(id, name, input)
+    | ToolResultBlock(tool_use_id, content, is_error)
+    | OpaqueBlock(provider_type, payload)
 )
 
 
@@ -47,7 +50,7 @@ class LLMClient(Protocol):
     ) -> LLMResponse: ...
 ```
 
-`AnthropicLLMClient` maps these to the Messages API: tools are passed with `strict: true`; model id, max tokens and effort come from configuration; API errors are mapped to `LLMError(retryable: bool)`; a single retry is applied to retryable errors when the remaining budget allows.
+`AnthropicLLMClient` maps these to the Messages API using the official `anthropic` Python SDK with `max_retries=0` so the agent loop owns the single retry. Tools are passed with `strict: true`; schemas are sanitized in the client (inline `$defs`/`$ref`, drop unsupported constraints such as `minimum`/`minItems` above 1, fold dropped constraints into field descriptions, force `additionalProperties: false` on every object) so strict mode accepts the registry's pydantic schemas. Model id, max tokens, effort and thinking mode come from configuration; `ANTHROPIC_API_KEY` is optional in `Settings` and enforced when constructing the client. `thinking` and `redacted_thinking` blocks from the API are stored as `OpaqueBlock` and echoed back verbatim on the next request within a tool-use turn. API errors are mapped to `LLMError(retryable: bool)`; a single retry is applied to retryable errors when the remaining budget allows.
 
 `FakeLLM` takes a list of `LLMResponse` objects and returns them in order; it records every call (system, messages, tools) for assertions and raises if called more times than scripted.
 
@@ -62,7 +65,7 @@ Algorithm:
    - Compute the remaining time; if below the configured minimum per call, stop with outcome `timeout`.
    - Call the LLM.
    - If `stop_reason` is `end_turn`, hand the text blocks to the composer.
-   - If `tool_use`, dispatch every tool call through the registry, append tool result blocks (serialized `ToolResult`), and continue.
+   - If `tool_use`, append the assistant content verbatim (including any `OpaqueBlock` thinking blocks), dispatch every tool call through the registry, append tool result blocks (serialized `ToolResult`), and continue.
    - If `max_tokens` or `other`, stop with outcome `llm_error`.
 3. If the loop exhausts iterations, stop with outcome `iteration_cap`.
 

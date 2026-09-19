@@ -139,3 +139,23 @@ def test_disabled_tools_parsed_from_comma_separated_string(isolated_env: None, a
     )
     settings = Settings(_env_file=None)
     assert settings.disabled_tools == ["get_trend", "compare"]
+
+
+def test_agent_and_anthropic_settings_defaults(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.anthropic_api_key is None
+    assert settings.anthropic_model == "claude-sonnet-5"
+    assert settings.anthropic_effort == "low"
+    assert settings.agent_max_iterations == 8
+    assert settings.agent_budget_seconds == 45.0
+    assert settings.agent_llm_retry_enabled is True

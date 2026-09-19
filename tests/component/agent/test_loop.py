@@ -1,0 +1,252 @@
+from __future__ import annotations
+
+import time
+from typing import Any
+
+from app.agent.loop import AgentLoop
+from app.config import Settings
+from app.data.errors import RepositoryError
+from app.data.fake_repository import FakeCensusRepository
+from app.llm.fake import FakeLLM
+from app.llm.types import LLMResponse, Message, TextBlock, ToolUseBlock, Usage
+from app.tools.registry import default_registry
+
+
+def _settings(**overrides: Any) -> Settings:
+    base = {
+        "SNOWFLAKE_ACCOUNT": "TEST",
+        "SNOWFLAKE_USER": "TEST",
+        "SNOWFLAKE_ROLE": "TEST",
+        "SNOWFLAKE_WAREHOUSE": "TEST",
+        "SNOWFLAKE_DATABASE": "TEST",
+        "SNOWFLAKE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+        "AGENT_MAX_ITERATIONS": 8,
+        "AGENT_MIN_SECONDS_PER_LLM_CALL": 5.0,
+    }
+    base.update(overrides)
+    return Settings(**base, _env_file=None)
+
+
+def _loop(
+    llm: FakeLLM,
+    repository: FakeCensusRepository | None = None,
+    settings: Settings | None = None,
+    *,
+    clock: Any = None,
+) -> AgentLoop:
+    resolved_settings = settings or _settings()
+    return AgentLoop(
+        llm,
+        default_registry(resolved_settings),
+        repository or FakeCensusRepository(settings=resolved_settings),
+        resolved_settings,
+        clock=clock or time.monotonic,
+    )
+
+
+def _user_message(text: str) -> list[Message]:
+    return [Message(role="user", content=[TextBlock(text=text)])]
+
+
+def test_happy_path_lookup_returns_answer_with_provenance() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_geo",
+                        name="find_geography",
+                        input={"query": "Texas", "level": "State"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(input_tokens=1, output_tokens=1),
+            ),
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_value",
+                        name="get_value",
+                        input={"field_id": "B01003e1", "geo_id": "48"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(input_tokens=1, output_tokens=1),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="Texas population is available from ACS.")],
+                stop_reason="end_turn",
+                usage=Usage(input_tokens=1, output_tokens=2),
+            ),
+        ]
+    )
+    answer = _loop(llm).run(
+        _user_message("What is the population of Texas?"), deadline=time.monotonic() + 60
+    )
+    assert answer.outcome == "answer"
+    assert answer.text == "Texas population is available from ACS."
+    assert answer.provenance
+    assert {trace.name for trace in answer.tool_calls} == {"find_geography", "get_value"}
+
+
+def test_ambiguous_geography_end_turn_is_clarify() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_geo",
+                        name="find_geography",
+                        input={"query": "Orange County"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="Which Orange County did you mean?")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    answer = _loop(llm).run(
+        _user_message("Median income in Orange County?"), deadline=time.monotonic() + 60
+    )
+    assert answer.outcome == "clarify"
+    assert "Orange County" in answer.text
+
+
+def test_period_unavailable_end_turn_is_unanswerable() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_value",
+                        name="get_value",
+                        input={"field_id": "B01003e1", "geo_id": "48", "vintage": 1990},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="1990 is outside the available ACS vintages.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    answer = _loop(llm).run(
+        _user_message("What was the population of Texas in 1990?"),
+        deadline=time.monotonic() + 60,
+    )
+    assert answer.outcome == "unanswerable"
+    assert answer.text == "1990 is outside the available ACS vintages."
+
+
+def test_ungrounded_numeric_without_tools_uses_template() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[TextBlock(text="The population of Texas is 30 million.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            )
+        ]
+    )
+    answer = _loop(llm).run(_user_message("Population of Texas?"), deadline=time.monotonic() + 60)
+    assert answer.outcome == "unanswerable"
+    assert "could not verify" in answer.text.lower()
+
+
+def test_capability_answer_without_tools_is_answer_with_empty_provenance() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    TextBlock(
+                        text=(
+                            "I answer US census questions using SafeGraph ACS block-group data "
+                            "with count rollups to state and county levels."
+                        )
+                    )
+                ],
+                stop_reason="end_turn",
+                usage=Usage(),
+            )
+        ]
+    )
+    answer = _loop(llm).run(
+        _user_message("What kind of questions can you answer?"), deadline=time.monotonic() + 60
+    )
+    assert answer.outcome == "answer"
+    assert answer.provenance == []
+
+
+def test_past_deadline_skips_llm_and_returns_timeout_error() -> None:
+    llm = FakeLLM([])
+    answer = _loop(llm).run(_user_message("Population of Texas?"), deadline=time.monotonic() - 1)
+    assert answer.outcome == "error"
+    assert "ran out of time" in answer.text.lower()
+    assert llm.calls == []
+
+
+def test_iteration_cap_returns_error() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id=f"toolu_{index}",
+                        name="find_geography",
+                        input={"query": "Texas"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            )
+            for index in range(5)
+        ]
+    )
+    answer = _loop(llm, settings=_settings(AGENT_MAX_ITERATIONS=3)).run(
+        _user_message("Population of Texas?"),
+        deadline=time.monotonic() + 60,
+    )
+    assert answer.outcome == "error"
+    assert "maximum number of lookup steps" in answer.text.lower()
+    assert len(llm.calls) == 3
+
+
+def test_repository_error_surfaces_as_tool_error_and_error_outcome() -> None:
+    class BrokenRepository(FakeCensusRepository):
+        def get_observations(self, field_id: str, geo_ids: list[str], vintage: int | None):
+            raise RepositoryError("database unavailable")
+
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_value",
+                        name="get_value",
+                        input={"field_id": "B01003e1", "geo_id": "48"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="The lookup failed.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    answer = _loop(llm, repository=BrokenRepository(settings=_settings())).run(
+        _user_message("Population of Texas?"),
+        deadline=time.monotonic() + 60,
+    )
+    assert answer.tool_calls[-1].result_kind == "tool_error"
+    assert answer.outcome == "error"

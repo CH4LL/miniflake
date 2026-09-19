@@ -8,7 +8,18 @@ import pytest
 @pytest.fixture
 def isolated_env(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     for key in list(os.environ):
-        if key.startswith(("APP_", "ENVIRONMENT", "LOG_LEVEL", "HEALTH_", "SNOWFLAKE_", "GCP_")):
+        if key.startswith(
+            (
+                "APP_",
+                "ENVIRONMENT",
+                "LOG_LEVEL",
+                "HEALTH_",
+                "SNOWFLAKE_",
+                "GCP_",
+                "ANTHROPIC_",
+                "AGENT_",
+            )
+        ):
             monkeypatch.delenv(key, raising=False)
     yield
 
@@ -26,6 +37,7 @@ def make_settings_env(**overrides: str) -> dict[str, str]:
         "SNOWFLAKE_DATABASE": "TEST_DB",
         "SNOWFLAKE_SCHEMA": "PUBLIC",
         "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+        "ANTHROPIC_API_KEY": "test-anthropic-key",
     }
     base.update(overrides)
     return base

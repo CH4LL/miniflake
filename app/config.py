@@ -75,6 +75,22 @@ class Settings(BaseSettings):
         default_factory=list, alias="DISABLED_TOOLS"
     )
 
+    anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
+    anthropic_model: str = Field(default="claude-sonnet-5", alias="ANTHROPIC_MODEL")
+    anthropic_classifier_model: str = Field(
+        default="claude-haiku-4-5", alias="ANTHROPIC_CLASSIFIER_MODEL"
+    )
+    anthropic_max_tokens: int = Field(default=4096, alias="ANTHROPIC_MAX_TOKENS")
+    anthropic_effort: str = Field(default="low", alias="ANTHROPIC_EFFORT")
+    anthropic_thinking: str = Field(default="adaptive", alias="ANTHROPIC_THINKING")
+    anthropic_timeout_seconds: float = Field(default=30.0, alias="ANTHROPIC_TIMEOUT_SECONDS")
+    agent_max_iterations: int = Field(default=8, alias="AGENT_MAX_ITERATIONS")
+    agent_budget_seconds: float = Field(default=45.0, alias="AGENT_BUDGET_SECONDS")
+    agent_min_seconds_per_llm_call: float = Field(
+        default=5.0, alias="AGENT_MIN_SECONDS_PER_LLM_CALL"
+    )
+    agent_llm_retry_enabled: bool = Field(default=True, alias="AGENT_LLM_RETRY_ENABLED")
+
     def acs_wide_table_name(self, vintage: int, series_prefix: str) -> str:
         return self.acs_wide_table_template.format(vintage=vintage, series_prefix=series_prefix)
 

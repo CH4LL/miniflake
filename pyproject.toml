@@ -5,6 +5,7 @@ description = "Data-grounded chat agent for US census data"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=0.49.0",
     "cryptography>=44.0.0",
     "fastapi>=0.115.0",
     "jinja2>=3.1.0",

@@ -28,11 +28,11 @@ Outline for a different source:
 
 ## Swap the LLM provider (completed in S3)
 
-Outline:
-
-1. Implement `LLMClient` in `app/llm/<provider>_client.py`, mapping the provider-neutral `Message`, `ContentBlock` and `ToolSchema` types to the provider API and back, with `LLMError(retryable)` for failures.
-2. Select it via configuration in `app/main.py`.
-3. Reuse the existing component tests with `FakeLLM`; add a unit test for request and response mapping with a stubbed transport.
+1. Implement `LLMClient` in `app/llm/<provider>_client.py`. Map the provider-neutral types in `app/llm/types.py` (`Message`, `ContentBlock`, `ToolSchema`, `LLMResponse`) to the provider API and back. Raise `LLMError(message, retryable=...)` from `app/llm/errors.py` on failures.
+2. If the provider supports strict tool schemas with a limited JSON Schema subset, add sanitization in the provider client (see `app/llm/schema_sanitize.py` and `AnthropicLLMClient`) rather than changing `ToolRegistry.schemas()`.
+3. Preserve opaque provider blocks (for example Anthropic `thinking` blocks) as `OpaqueBlock` and echo them back verbatim within a tool-use turn.
+4. Wire the client in `scripts/chat_cli.py` and, from S4 onward, in `app/main.py` via a configuration value such as `LLM_PROVIDER`.
+5. Reuse component tests with `FakeLLM`; add a unit test with a stubbed HTTP transport for request mapping, response mapping, error classification, and retry behaviour.
 
 ## Swap the conversation store (completed in S4)
 
@@ -48,4 +48,7 @@ Outline: patterns and templates are YAML files under `app/guardrails/`; classifi
 
 ## Change the system prompt (completed in S3)
 
-Outline: edit `app/agent/prompts/system.md`; run the component tests and the eval set; record prompt-engineering decisions in the decision log.
+1. Edit `app/agent/prompts/system.md` for role, grounding rules, and answer format.
+2. Edit `app/agent/prompts/templates.yaml` for timeout, iteration-cap, and ungrounded-answer messages.
+3. If the prompt needs new runtime values, extend `build_system_prompt` in `app/agent/prompt.py`.
+4. Run `tests/unit/agent/test_prompt.py`, `tests/component/agent/test_loop.py`, and the eval set; record prompt-engineering decisions in the decision log.

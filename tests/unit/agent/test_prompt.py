@@ -1,0 +1,36 @@
+from typing import Any
+
+from app.agent.prompt import build_system_prompt, load_templates
+from app.config import Settings
+from app.data.models import GeoLevel
+from app.tools.registry import default_registry
+
+
+def _settings(**overrides: Any) -> Settings:
+    base = {
+        "SNOWFLAKE_ACCOUNT": "TEST",
+        "SNOWFLAKE_USER": "TEST",
+        "SNOWFLAKE_ROLE": "TEST",
+        "SNOWFLAKE_WAREHOUSE": "TEST",
+        "SNOWFLAKE_DATABASE": "TEST",
+        "SNOWFLAKE_PRIVATE_KEY": "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----",
+    }
+    base.update(overrides)
+    return Settings(**base, _env_file=None)
+
+
+def test_templates_load() -> None:
+    templates = load_templates()
+    assert "ungrounded_numeric" in templates
+    assert "timeout" in templates
+    assert templates["timeout"]
+
+
+def test_system_prompt_lists_tools_and_geography_levels() -> None:
+    registry = default_registry(_settings())
+    prompt = build_system_prompt(registry, _settings())
+    for schema in registry.schemas():
+        assert schema["name"] in prompt
+        assert schema["description"] in prompt
+    for level in GeoLevel:
+        assert level.value in prompt

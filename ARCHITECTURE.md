@@ -2,7 +2,7 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
-**Current implementation (S0–S2):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Agent, conversation, guardrail, and web packages remain planned for later stages.
+**Current implementation (S0–S3):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/health.py` (`GET /api/health`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop`, file-based system prompt, `AnswerComposer`, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Conversation, guardrail, and web packages remain planned for later stages.
 
 ## Principles
 
@@ -120,6 +120,14 @@ Each tool returns a discriminated `ToolResult` with a `kind` field:
 | `tool_error` | Repository failure; `retryable` indicates whether to retry |
 
 `ToolRegistry.schemas()` emits provider-neutral JSON Schema for enabled tools. `dispatch` validates input, runs the tool, and maps repository errors to `ToolError` without propagating exceptions.
+
+## LLM layer
+
+`LLMClient` in `app/llm/client.py` defines a provider-neutral contract: `Message` with `TextBlock`, `ToolUseBlock`, `ToolResultBlock`, and `OpaqueBlock` (for passthrough of provider thinking blocks). `AnthropicLLMClient` uses the official Anthropic SDK with strict tool schemas, configurable model, effort, and thinking mode. Registry schemas are sanitized in the client before `strict: true` is applied. `FakeLLM` replays scripted responses for deterministic component tests.
+
+## Agent core
+
+`AgentLoop` in `app/agent/loop.py` builds the system prompt from `app/agent/prompts/system.md` plus rendered tool, geography, topic, and vintage summaries; calls the LLM with tool schemas from `ToolRegistry`; dispatches tool calls; echoes assistant content verbatim (including opaque thinking blocks); and stops on `end_turn`, iteration cap, or wall-clock budget. `AnswerComposer` in `app/agent/composer.py` classifies the outcome (`answer`, `clarify`, `unanswerable`, `error`) and replaces ungrounded numeric answers with a template from `app/agent/prompts/templates.yaml`. `scripts/chat_cli.py` runs a single turn against Snowflake and Anthropic for manual iteration.
 
 ## Testing
 

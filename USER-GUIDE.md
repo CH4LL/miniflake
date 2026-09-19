@@ -4,7 +4,7 @@ Miniflake answers questions about the US population using American Community Sur
 
 ## Current state
 
-No user-facing features are available yet. The sections below are placeholders that each stage fills in.
+The agent core is available via the command-line runner. It answers single-turn census questions using typed tools over Snowflake and composes grounded answers with provenance. The web chat page and HTTP API arrive in later stages.
 
 ## Using the chat page
 
@@ -16,7 +16,16 @@ Added in S6 and S7.
 
 ## Asking good questions
 
-Added in S3 and S5. Will cover: supported topics, supported geography levels, how to specify a year, how follow-up questions work, and what the agent will decline.
+The agent answers US census questions backed by SafeGraph ACS 5-year block-group data.
+
+- **Supported geographies:** block group (native), and nation, state, and county for **count** measures rolled up from block groups.
+- **Median and rate measures** (income, age, poverty rate, and similar) are available only at block-group level.
+- **Place and CBSA** levels are not supported in the current dataset.
+- **Specify a year** when you need a particular ACS vintage; otherwise the latest available vintage is used.
+- **Follow-up questions** that carry context from a prior turn require the conversation API in S4.
+- The agent refuses to invent numbers. If it cannot look up a value, it explains why and may ask for clarification.
+
+Intent classification and templated refusals for off-topic or harmful input arrive in S5.
 
 ## Reading provenance
 
@@ -24,7 +33,28 @@ Added in S6. Will explain the provenance panel: which variable, geography and ye
 
 ## Command-line runner
 
-Added in S3.
+Run a single question against Snowflake and Anthropic:
+
+```bash
+uv run python scripts/chat_cli.py "What is the population of Texas?"
+```
+
+Or pipe a question from stdin:
+
+```bash
+echo "What kind of questions can you answer?" | uv run python scripts/chat_cli.py
+```
+
+Required environment variables are listed in `.env.example`. At minimum you need Snowflake credentials, `ANTHROPIC_API_KEY`, and a working `.env` file.
+
+The CLI prints:
+
+- the outcome class (`answer`, `clarify`, `unanswerable`, or `error`)
+- the answer text
+- each tool call with its result kind
+- provenance records for successful data lookups
+
+Adjust agent timeouts and iteration limits with the `AGENT_*` and `ANTHROPIC_*` settings in configuration.
 
 ## API
 

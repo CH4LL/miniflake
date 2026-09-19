@@ -203,3 +203,45 @@ What: Implemented six tools, `ToolRegistry`, discriminated `ToolResult` outcomes
 Why: S2 exit criteria require typed tools with explicit outcomes and JSON Schema generation before the agent core in S3.
 Dropped: n/a
 Refs: specs/S2-tool-layer.md, ARCHITECTURE.md
+
+## 2026-09-19  OpaqueBlock passthrough for Anthropic thinking blocks
+Stage: S3 | Type: deviation
+What: Added `OpaqueBlock(provider_type, payload)` to the provider-neutral `ContentBlock` union. The Anthropic client stores `thinking` and `redacted_thinking` blocks verbatim and re-serializes them unchanged on the next request within a tool-use turn.
+Why: Anthropic requires thinking blocks to accompany tool_use blocks unmodified; filtering or rebuilding them returns a 400.
+Dropped: A thinking-free message model without passthrough.
+Refs: specs/S3-agent-core.md, ADR-002
+
+## 2026-09-19  Strict tool schema sanitization in Anthropic client
+Stage: S3 | Type: deviation
+What: Sanitize registry JSON Schemas in `AnthropicLLMClient` before sending with `strict: true`: inline refs, drop unsupported constraints, fold them into descriptions. `ToolRegistry.schemas()` stays provider-neutral.
+Why: Existing tool input models emit `minimum: 1` and `minItems: 2`, which strict mode rejects.
+Dropped: Changing tool input models solely for Anthropic strict mode.
+Refs: specs/S3-agent-core.md, app/tools/rank_geographies.py, app/tools/compare.py
+
+## 2026-09-19  Optional ANTHROPIC_API_KEY in Settings
+Stage: S3 | Type: deviation
+What: `anthropic_api_key` is optional in `Settings`; `AnthropicLLMClient` raises at construction when absent.
+Why: Required key breaks existing unit test helpers that build `Settings(..., _env_file=None)` without Anthropic credentials.
+Dropped: Required pydantic field for the API key.
+Refs: specs/S3-agent-core.md, tests/conftest.py
+
+## 2026-09-19  Anthropic SDK with adaptive thinking and configurable effort
+Stage: S3 | Type: decision
+What: Use the official `anthropic` Python SDK with `max_retries=0`; adaptive thinking on by default with configurable `anthropic_effort` (default low) to protect the latency budget.
+Why: Reliable tool selection on Sonnet 5; effort controls cost and latency without disabling thinking entirely.
+Dropped: Raw httpx client; thinking disabled by default.
+Refs: specs/S3-agent-core.md, ADR-002
+
+## 2026-09-19  S3 agent core implemented
+Stage: S3 | Type: decision
+What: Implemented `app/llm/` and `app/agent/` with Anthropic client, FakeLLM, AgentLoop, AnswerComposer, system prompt, templates, CLI runner, and component tests covering every S3 acceptance criterion.
+Why: S3 exit criteria require a single-turn grounded agent with provenance before conversation storage and HTTP in S4.
+Dropped: n/a
+Refs: specs/S3-agent-core.md, ARCHITECTURE.md
+
+## 2026-09-19  S3 live agent lookup verified
+Stage: S3 | Type: decision
+What: `RUN_LIVE_TESTS=1 uv run pytest tests/live/test_agent_live.py` passed on 2026-09-19 after a Texas population lookup returned `answer` with a `get_value` provenance record.
+Why: Stage-end checklist requires opt-in live verification when credentials are available.
+Dropped: n/a
+Refs: specs/S3-agent-core.md, scripts/chat_cli.py
