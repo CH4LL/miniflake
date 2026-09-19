@@ -211,6 +211,54 @@ def test_retryable_error_is_retried_once() -> None:
     assert response.content[0].text == "Hello"
 
 
+def test_classifier_client_can_omit_effort() -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(200, json=_success_response())
+
+    transport = httpx.MockTransport(handler)
+    client = AnthropicLLMClient(
+        _settings(),
+        http_client=httpx.Client(transport=transport),
+        model="claude-haiku-4-5",
+        use_effort=False,
+    )
+    client.complete("system", [], [], timeout_s=5.0)
+    body = json.loads(captured[0].content)
+    assert "output_config" not in body
+
+
+def test_constructor_overrides_model_thinking_and_tool_choice() -> None:
+    captured: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.append(request)
+        return httpx.Response(200, json=_success_response())
+
+    transport = httpx.MockTransport(handler)
+    client = AnthropicLLMClient(
+        _settings(ANTHROPIC_MODEL="claude-sonnet-5"),
+        http_client=httpx.Client(transport=transport),
+        model="claude-haiku-4-5",
+        thinking="disabled",
+        forced_tool_name="classify_intent",
+    )
+    tools = [
+        ToolSchema(
+            name="classify_intent",
+            description="classify",
+            input_schema={"type": "object", "properties": {}},
+        )
+    ]
+    client.complete("system", [], tools, timeout_s=5.0)
+    body = json.loads(captured[0].content)
+    assert body["model"] == "claude-haiku-4-5"
+    assert body["thinking"] == {"type": "disabled"}
+    assert body["tool_choice"] == {"type": "tool", "name": "classify_intent"}
+
+
 def test_non_retryable_error_raises_without_retry() -> None:
     attempts = 0
 

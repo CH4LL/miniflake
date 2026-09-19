@@ -294,3 +294,60 @@ What: Implemented `app/conversation/`, chat routes, error envelope, session cook
 Why: S4 exit criteria require multi-turn HTTP access with server-side memory before guardrails and the web UI.
 Dropped: n/a
 Refs: specs/S4-conversation-api.md, ARCHITECTURE.md
+
+## 2026-09-19  S5 grounding check allows derived sums and differences
+Stage: S5 | Type: deviation
+What: Extended the output grounding matcher beyond percentage-of-total to include sums and differences of returned values, and updated the S5 spec accordingly.
+Why: Eval items AT02 and C02 expect stated derived totals and differences when operands appear in tool results; percentages alone would false-negative legitimate answers.
+Dropped: Spec-literal percentage-only derivation rule.
+Refs: specs/S5-guardrails.md, evals AT02, C02
+
+## 2026-09-19  S5 classifier reuses LLMClient with constructor overrides
+Stage: S5 | Type: decision
+What: Extended `AnthropicLLMClient` with optional `model`, `thinking`, and `forced_tool_name` overrides; `IntentClassifier` uses the same `LLMClient` protocol and `FakeLLM` scripting in tests.
+Why: Keeps one provider integration path; classifier tests stay deterministic without a separate protocol.
+Dropped: Dedicated `IntentClassifierClient` protocol and implementation.
+Refs: specs/S5-guardrails.md, ADR-007
+
+## 2026-09-19  S5 role-play pre-check narrowed for eval I03
+Stage: S5 | Type: deviation
+What: Removed the broad "you are now an unrestricted" injection pattern from pre-checks so embedded census questions with role-play framing reach the agent loop.
+Why: Eval I03 expects a grounded answer ignoring the override instruction; pre-check refusal would contradict the behavioural definition.
+Dropped: Catching all role-play overrides at the pre-check layer.
+Refs: evals I03, specs/S5-guardrails.md
+
+## 2026-09-19  S5 guardrail short-circuit turns persisted
+Stage: S5 | Type: decision
+What: Refusal and clarification responses from guardrails are saved as user plus assistant messages before returning, so follow-ups answering a clarification have an antecedent in history.
+Why: Clarification items (AG02, AV01, CF02) assume the user can reply in the same session after the agent asks what was missing.
+Dropped: Ephemeral guardrail responses not stored in the conversation.
+Refs: specs/S5-guardrails.md, ADR-005
+
+## 2026-09-19  S5 guardrails implemented
+Stage: S5 | Type: decision
+What: Implemented `app/guardrails/` (pre-checks, intent classifier, output grounding, templates, pipeline), wired into `ConversationService` and `build_container`, with unit and eval-driven end-to-end tests.
+Why: S5 exit criteria require layered guardrails that block out-of-scope input before data access and verify numeric grounding on answers.
+Dropped: n/a
+Refs: specs/S5-guardrails.md, ARCHITECTURE.md, ADR-007
+
+## 2026-09-19  S5 live guardrail tests added
+Stage: S5 | Type: decision
+What: Added `tests/live/test_guardrails_live.py` covering off-topic refusal and in-scope Texas population lookup through `ConversationService` with real Anthropic and Snowflake credentials.
+Why: Stage-end checklist requires opt-in live verification when credentials are available.
+Dropped: n/a
+Refs: specs/S5-guardrails.md
+Note: Run with `RUN_LIVE_TESTS=1 uv run pytest tests/live/test_guardrails_live.py` when credentials are configured.
+
+## 2026-09-19  S5 classifier client omits effort parameter
+Stage: S5 | Type: deviation
+What: `AnthropicLLMClient` gained `use_effort=False` for the classifier instance; Haiku does not accept `output_config.effort`.
+Why: Live guardrail tests showed the classifier failing open with HTTP 400 when effort was sent to the classifier model.
+Dropped: Sharing agent effort settings with the classifier client.
+Refs: tests/live/test_guardrails_live.py, app/api/deps.py
+
+## 2026-09-19  S5 live guardrail tests passed
+Stage: S5 | Type: decision
+What: `RUN_LIVE_TESTS=1 uv run pytest tests/live/test_guardrails_live.py` passed on 2026-09-19: off-topic poem refused without data call; Texas population lookup reached the agent with provenance.
+Why: Stage-end checklist requires opt-in live verification when credentials are available.
+Dropped: n/a
+Refs: specs/S5-guardrails.md

@@ -2,7 +2,7 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
-**Current implementation (S0–S4):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/` (`GET /api/health`, `POST /api/chat`, `POST /api/conversations/reset`, error envelope, request-id middleware), `app/conversation/` (`ConversationStore` protocol, `InMemoryConversationStore`, `ConversationService`, `ResolvedContext`, history windowing), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop`, file-based system prompt with recently-discussed context, `AnswerComposer`, per-turn transcript, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Guardrail and web packages remain planned for later stages.
+**Current implementation (S0–S5):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory), `app/api/` (`GET /api/health`, `POST /api/chat`, `POST /api/conversations/reset`, error envelope, request-id middleware), `app/conversation/` (`ConversationStore` protocol, `InMemoryConversationStore`, `ConversationService`, `ResolvedContext`, history windowing), `app/guardrails/` (deterministic pre-checks, intent classifier, output grounding check, YAML patterns and templates, `GuardrailPipeline`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop`, file-based system prompt with recently-discussed context, `AnswerComposer`, per-turn transcript, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/snapshot_catalog.py`, fixtures under `fixtures/`, Dockerfile, CI workflow, and deploy script. Web UI remains planned for S6.
 
 ## Principles
 
@@ -36,7 +36,7 @@ flowchart TB
 4. Guardrails run deterministic pre-checks, then an intent classification. Off-topic or harmful input is answered with a templated refusal without touching the data layer. Underspecified input is answered with a clarification.
 5. `AgentLoop` calls the LLM with the system prompt, conversation history and tool schemas. The LLM either answers or requests tool calls; the loop executes tools through `ToolRegistry`, feeds results back, and repeats until the model answers, the iteration cap is hit, or the time budget expires.
 6. Tools call `CensusRepository`, which runs parametrized SQL against Snowflake and returns typed rows plus a `Provenance` record. For count fields at state, county, place or nation level the repository sums block-group values; median and rate fields at those levels return `UnsupportedRequest`. Tools return typed results including explicit `Ambiguous`, `NotFound`, `PeriodUnavailable` and `UnsupportedRequest` outcomes.
-7. `AnswerComposer` produces the final text, attaches provenance, and applies the output grounding check: numbers in the text must appear in tool results, otherwise the answer is replaced with a grounded degradation message.
+7. `AnswerComposer` produces the final text and attaches provenance. The guardrails output grounding check then verifies that numbers in the text match tool results; a failure replaces the text with a templated ungrounded-answer message while keeping provenance.
 8. The assistant turn and updated context are saved; the response is returned to the browser, which renders the text and an expandable provenance panel.
 
 ## Layers and boundaries
@@ -131,7 +131,17 @@ Each tool returns a discriminated `ToolResult` with a `kind` field:
 
 ## Conversation and API
 
-`ConversationStore` in `app/conversation/store.py` is a protocol; `InMemoryConversationStore` holds full turn transcripts and `ResolvedContext` in process memory with idle TTL and turn-boundary trimming. `ConversationService` validates input, loads history, injects resolved facts into the agent, saves updated context and transcript, and exposes a no-op guardrail hook for S5. `POST /api/chat` runs the service under a hard request timeout in a worker thread; `POST /api/conversations/reset` clears server-side history. An anonymous session cookie identifies the conversation. Errors use a uniform envelope with `request_id`.
+`ConversationStore` in `app/conversation/store.py` is a protocol; `InMemoryConversationStore` holds full turn transcripts and `ResolvedContext` in process memory with idle TTL and turn-boundary trimming. `ConversationService` validates input, runs guardrails, loads history, injects resolved facts into the agent, applies the output grounding check, and saves updated context and transcript. `POST /api/chat` runs the service under a hard request timeout in a worker thread; `POST /api/conversations/reset` clears server-side history. An anonymous session cookie identifies the conversation. Errors use a uniform envelope with `request_id`.
+
+## Guardrails
+
+`GuardrailPipeline` in `app/guardrails/pipeline.py` composes three layers before and after the agent loop:
+
+1. **Pre-checks** (`prechecks.py`, `patterns.yaml`): length and character sanity, then regex patterns for prompt injection, SQL execution requests, and personal-data requests. Matches return a templated refusal without an LLM or data call.
+2. **Intent classifier** (`classifier.py`): one structured-output call to the cheaper model (`anthropic_classifier_model`) with the last two turns as plain-text context. Off-topic and harmful input is refused; underspecified input returns a clarification template. Classifier errors fail open to the agent loop and are logged.
+3. **Output grounding check** (`grounding.py`): after a successful agent answer, numeric tokens in the text must match values from `Success` tool payloads, allowing displayed-precision rounding and derived sums, differences, and percentages. Failure replaces the text with the ungrounded-answer template and sets outcome `unanswerable`, keeping provenance.
+
+Refusal and clarification texts live in `app/guardrails/templates.yaml`. Guardrail short-circuit turns are persisted as user plus assistant messages. Adjustable thresholds and toggles live in configuration (`GUARDRAIL_*`).
 
 ## Testing
 

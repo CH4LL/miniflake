@@ -11,6 +11,8 @@ from app.config import Settings, get_settings
 from app.conversation.memory_store import InMemoryConversationStore
 from app.conversation.service import ConversationService
 from app.data.fake_repository import FakeCensusRepository
+from app.guardrails.classifier import IntentClassifier
+from app.guardrails.pipeline import GuardrailPipeline
 from app.llm.fake import FakeLLM
 from app.llm.types import LLMResponse, TextBlock, ToolUseBlock, Usage
 from app.main import create_app
@@ -34,22 +36,52 @@ def _settings(**overrides: Any) -> Settings:
     return Settings(**base, _env_file=None)
 
 
+def _in_scope_classifier_response() -> LLMResponse:
+    return LLMResponse(
+        content=[
+            ToolUseBlock(
+                id="toolu_classify",
+                name="classify_intent",
+                input={
+                    "intent": "in_scope",
+                    "reason": "test fixture",
+                    "confidence": 0.95,
+                    "missing": "none",
+                },
+            )
+        ],
+        stop_reason="tool_use",
+        usage=Usage(),
+    )
+
+
 def _build_container(
     llm: FakeLLM,
     settings: Settings | None = None,
     *,
     clock: Any = None,
+    classifier_llm: FakeLLM | None = None,
 ) -> AppContainer:
     resolved_settings = settings or _settings()
     repository = FakeCensusRepository(settings=resolved_settings)
     registry = default_registry(resolved_settings)
     store = InMemoryConversationStore(resolved_settings, clock=clock or time.monotonic)
     loop = AgentLoop(llm, registry, repository, resolved_settings, clock=clock or time.monotonic)
-    service = ConversationService(resolved_settings, store, loop)
+    resolved_classifier = classifier_llm or FakeLLM([_in_scope_classifier_response()] * 20)
+    classifier = IntentClassifier(resolved_classifier, resolved_settings)
+    guardrails = GuardrailPipeline(resolved_settings, classifier)
+    service = ConversationService(
+        resolved_settings,
+        store,
+        loop,
+        guardrails=guardrails,
+        clock=clock or time.monotonic,
+    )
     return AppContainer(
         settings=resolved_settings,
         repository=repository,
         llm=llm,
+        classifier_llm=resolved_classifier,
         registry=registry,
         store=store,
         service=service,
@@ -231,11 +263,14 @@ def test_request_timeout_returns_error_outcome() -> None:
     registry = default_registry(settings)
     store = InMemoryConversationStore(settings)
     loop = AgentLoop(SlowLLM(), registry, repository, settings)
-    service = ConversationService(settings, store, loop)
+    classifier = IntentClassifier(FakeLLM([_in_scope_classifier_response()]), settings)
+    guardrails = GuardrailPipeline(settings, classifier)
+    service = ConversationService(settings, store, loop, guardrails=guardrails)
     container = AppContainer(
         settings=settings,
         repository=repository,
         llm=SlowLLM(),
+        classifier_llm=FakeLLM([_in_scope_classifier_response()]),
         registry=registry,
         store=store,
         service=service,

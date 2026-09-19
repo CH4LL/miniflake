@@ -25,7 +25,21 @@ The agent answers US census questions backed by SafeGraph ACS 5-year block-group
 - **Follow-up questions** reuse the last resolved geography, variable, and vintage from earlier turns in the same session.
 - The agent refuses to invent numbers. If it cannot look up a value, it explains why and may ask for clarification.
 
-Intent classification and templated refusals for off-topic or harmful input arrive in S5.
+## What the agent will and will not answer
+
+**Will answer:** US population and demographic questions backed by SafeGraph ACS block-group data — lookups, comparisons, rankings, and trends within supported geography levels and vintages.
+
+**Will ask for clarification** when a question is plausible but missing a geography, measure, or vintage (for example, "How many people live in Washington?" or "What is the income in Ohio?").
+
+**Will refuse** without querying data:
+
+- Off-topic requests (poems, coding help, non-US geography, general knowledge).
+- Harmful or discriminatory requests, or requests for personal information about individuals.
+- Prompt-injection and SQL-execution attempts caught by pre-check patterns.
+
+**Ungrounded answers:** if the agent produces numbers that cannot be verified against tool results, the response is replaced with an explanation and the provenance panel still shows what was fetched.
+
+Role-play overrides embedded in otherwise valid census questions are answered from data when possible; the agent ignores instructions to invent figures or reveal secrets.
 
 ## Reading provenance
 
@@ -70,7 +84,7 @@ The response includes:
 
 - `conversation_id` — server-side conversation identifier
 - `text` — answer text
-- `outcome` — `answer`, `clarify`, `unanswerable`, or `error`
+- `outcome` — `answer`, `clarify`, `unanswerable`, `refuse`, or `error`
 - `provenance` — data-source records for successful lookups
 - `tool_calls` — tool names and result kinds for this turn
 - `latency_ms` — server-side latency

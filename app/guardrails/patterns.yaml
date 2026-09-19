@@ -1,0 +1,17 @@
+injection:
+  - ignore\s+(all\s+)?previous\s+instructions
+  - reveal\s+(your\s+)?system\s+prompt
+  - disregard\s+(all\s+)?prior\s+instructions
+  - forget\s+(all\s+)?previous\s+instructions
+
+sql_execution:
+  - run\s+this\s+sql
+  - execute\s+sql
+  - drop\s+table
+  - select\s+\*\s+from
+
+personal_data:
+  - home\s+addresses?\s+of\s+people
+  - personal\s+data\s+about
+  - named\s+individuals?
+  - people\s+earning\s+over

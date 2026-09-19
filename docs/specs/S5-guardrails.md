@@ -27,15 +27,19 @@ Content moderation beyond the classifier; rate limiting (S7 mentions Cloud Run c
 
 ### Intent classifier (`app/guardrails/classifier.py`)
 
-One call to the classifier model with a structured output schema: `{intent: in_scope | needs_clarification | off_topic | harmful, reason: str, confidence: float}`. Input is the current message plus the last two turns so that follow-ups like "and in Florida?" are classified in context. Configuration sets the model and a confidence threshold below which `in_scope` is treated as `needs_clarification`. Classifier failure (timeout or error) fails open to the agent loop and is logged; the agent's own grounding rules remain as protection.
+One call to the classifier model with a structured output schema: `{intent: in_scope | needs_clarification | off_topic | harmful, reason: str, confidence: float, missing: geography | measure | vintage | generic | null}`. Input is the current message plus the last two turns so that follow-ups like "and in Florida?" are classified in context. Context is rendered as plain text only (never raw `tool_use` blocks). Configuration sets the model and a confidence threshold below which `in_scope` is treated as `needs_clarification`. Classifier failure (timeout or error) fails open to the agent loop and is logged; the agent's own grounding rules remain as protection.
 
 ### Output grounding check (`app/guardrails/grounding.py`)
 
-Extract numeric tokens from the answer text (integers, decimals, percentages, with thousands separators and common abbreviations such as "million"). Each must match a value present in the collected `Success` tool results, allowing for rounding to the precision displayed and for percentage-of-total derivations when both operands are present. Years and ordinal ranks are exempt. A failing check replaces the text with the ungrounded-answer template and sets outcome `unanswerable`, keeping provenance so the user can see what was fetched.
+Extract numeric tokens from the answer text (integers, decimals, percentages, with thousands separators and common abbreviations such as "million"). Each must match a value present in the collected `Success` tool results, allowing for rounding to the precision displayed and for derived figures when operands are present: percentage-of-total (`a/b*100`), sums of returned values, and differences between returned values. Years and ordinal ranks are exempt. A failing check replaces the text with the ungrounded-answer template and sets outcome `unanswerable`, keeping provenance so the user can see what was fetched.
 
 ### Templates (`app/guardrails/templates.yaml`)
 
 Off-topic (states what the agent covers: US population questions from the SafeGraph Open Census ACS block-group dataset, with count rollups to state/county; example questions), harmful (brief refusal), injection (brief refusal), needs clarification (asks the specific missing element: geography, measure or vintage), ungrounded answer.
+
+### Pipeline (`app/guardrails/pipeline.py`)
+
+`GuardrailPipeline` composes pre-checks, classifier, and grounding. It returns a layer-neutral `GuardrailDecision` (`outcome`, `text`); `ConversationService` builds the `AgentAnswer` so `app/guardrails/` never imports `app/agent/`. Guardrail short-circuit turns (refusal and clarification) are persisted as user plus assistant text so a follow-up answering the clarification has an antecedent.
 
 ## Acceptance criteria
 
@@ -46,17 +50,18 @@ Off-topic (states what the agent covers: US population questions from the SafeGr
 - Given an answer text containing a number absent from tool results, then the grounding check fails and the outcome becomes `unanswerable`.
 - Given an answer whose numbers are rounded versions of tool values (e.g. "about 29.5 million" for a value near that), then the grounding check passes.
 - Given an answer with a percentage derived from two returned values, then the grounding check passes.
+- Given an answer with a sum or difference derived from returned values (e.g. combined state populations or a county comparison), then the grounding check passes.
 
 ## Tests to write first
 
 1. `tests/unit/guardrails/test_prechecks.py`: each pattern category, benign near-misses.
 2. `tests/unit/guardrails/test_classifier.py`: schema parsing, threshold behaviour, fail-open.
-3. `tests/unit/guardrails/test_grounding.py`: number extraction and matching rules, rounding, derived percentages, exemptions.
+3. `tests/unit/guardrails/test_grounding.py`: number extraction and matching rules, rounding, derived percentages, sums, differences, exemptions.
 4. `tests/e2e/test_guardrails_api.py`: eval-driven test loading `refuse` and `clarify` items and asserting outcomes with fakes.
 
 ## Files
 
-- `app/guardrails/__init__.py`, `prechecks.py`, `classifier.py`, `grounding.py`, `patterns.yaml`, `templates.yaml`
+- `app/guardrails/__init__.py`, `types.py`, `prechecks.py`, `classifier.py`, `grounding.py`, `pipeline.py`, `patterns.yaml`, `templates.yaml`
 - `app/conversation/service.py` wiring
 
 ## Documentation updates at stage end

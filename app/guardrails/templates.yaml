@@ -1,0 +1,37 @@
+off_topic: >
+  I can only answer questions about US population and demographics from the SafeGraph
+  Open Census ACS block-group dataset. Try asking about state or county population counts,
+  block-group medians, rankings, or trends across available ACS vintages.
+
+harmful: >
+  I cannot help with that request. I provide aggregate census statistics only.
+
+injection: >
+  I cannot follow that instruction. Ask a census or population question instead.
+
+sql_execution: >
+  I cannot run SQL or access the database directly. Ask a census question and I will
+  look up the data with the available tools.
+
+personal_data: >
+  I only have aggregate block-group census statistics, not personal information about
+  individuals.
+
+needs_clarification_geography: >
+  Which geography did you mean? Please specify the state, county, or block group.
+
+needs_clarification_measure: >
+  Which measure did you mean? For example, total population, median household income,
+  or a specific educational attainment level.
+
+needs_clarification_vintage: >
+  Which ACS vintage did you mean? I can use the vintages available in this dataset.
+
+needs_clarification_generic: >
+  I need a bit more detail before I can look that up. Please specify the geography,
+  measure, or vintage.
+
+ungrounded_answer: >
+  I could not verify every figure in that answer against the data returned from the
+  lookup. The provenance below shows what was fetched. Please ask again if you need a
+  grounded answer.

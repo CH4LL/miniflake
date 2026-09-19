@@ -4,13 +4,15 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.agent.composer import AgentAnswer
 from app.agent.loop import AgentLoop
 from app.config import Settings
 from app.conversation.history import history_for_llm
 from app.conversation.store import Conversation, ConversationStore
+from app.guardrails.prechecks import check_sanity
+from app.guardrails.types import GuardrailDecision
 from app.llm.types import Message, TextBlock
 
 
@@ -31,7 +33,13 @@ class CancellationToken:
 
 
 class GuardrailHook(Protocol):
-    def before_agent(self, conversation: Conversation, message: str) -> AgentAnswer | None: ...
+    def before_agent(
+        self, conversation: Conversation, message: str
+    ) -> GuardrailDecision | None: ...
+
+    def check_answer(
+        self, text: str, payloads: list[dict[str, Any]]
+    ) -> GuardrailDecision | None: ...
 
 
 @dataclass(frozen=True)
@@ -66,23 +74,19 @@ class ConversationService:
         cancellation: CancellationToken | None = None,
     ) -> ChatTurn:
         normalized = message.strip()
-        if not normalized:
-            raise InvalidMessageError("Message must not be empty")
-        if len(normalized) > self._settings.max_message_chars:
-            raise InvalidMessageError("Message exceeds maximum length")
+        sanity_reason = check_sanity(normalized, self._settings.max_message_chars)
+        if sanity_reason:
+            raise InvalidMessageError(sanity_reason)
 
         conversation = self._load_or_create(conversation_id)
         lock = self._lock_for(conversation.id)
+        started = self._clock()
         with lock:
             conversation = self._load_or_create(conversation.id)
             if self._guardrails is not None:
                 guarded = self._guardrails.before_agent(conversation, normalized)
                 if guarded is not None:
-                    return ChatTurn(
-                        conversation_id=conversation.id,
-                        answer=guarded,
-                        latency_ms=0.0,
-                    )
+                    return self._short_circuit_turn(conversation, normalized, guarded, started)
 
             user_message = Message(role="user", content=[TextBlock(text=normalized)])
             conversation.messages.append(user_message)
@@ -90,11 +94,10 @@ class ConversationService:
                 conversation.messages,
                 window_turns=self._settings.conversation_history_window_turns,
             )
-            deadline = self._clock() + min(
+            deadline = started + min(
                 self._settings.agent_budget_seconds,
                 self._settings.api_request_timeout_seconds,
             )
-            started = self._clock()
             answer = self._loop.run(
                 history,
                 deadline,
@@ -109,6 +112,7 @@ class ConversationService:
                     latency_ms=latency_ms,
                 )
 
+            answer = self._apply_output_guardrails(answer)
             conversation.messages.extend(answer.transcript)
             updated_context = conversation.context.model_copy(deep=True)
             updated_context.update_from_traces(answer.tool_calls)
@@ -125,6 +129,47 @@ class ConversationService:
             self._store.delete(conversation_id)
         fresh = self._store.create()
         return fresh.id
+
+    def _short_circuit_turn(
+        self,
+        conversation: Conversation,
+        message: str,
+        decision: GuardrailDecision,
+        started: float,
+    ) -> ChatTurn:
+        user_message = Message(role="user", content=[TextBlock(text=message)])
+        assistant_message = Message(role="assistant", content=[TextBlock(text=decision.text)])
+        conversation.messages.append(user_message)
+        conversation.messages.append(assistant_message)
+        self._store.save(conversation)
+        answer = AgentAnswer(text=decision.text, outcome=decision.outcome)
+        return ChatTurn(
+            conversation_id=conversation.id,
+            answer=answer,
+            latency_ms=(self._clock() - started) * 1000,
+        )
+
+    def _apply_output_guardrails(self, answer: AgentAnswer) -> AgentAnswer:
+        if self._guardrails is None or answer.outcome != "answer":
+            return answer
+        payloads = [
+            trace.data
+            for trace in answer.tool_calls
+            if trace.result_kind == "success" and trace.data is not None
+        ]
+        if not payloads:
+            return answer
+        decision = self._guardrails.check_answer(answer.text, payloads)
+        if decision is None:
+            return answer
+        return AgentAnswer(
+            text=decision.text,
+            outcome=decision.outcome,
+            provenance=answer.provenance,
+            tool_calls=answer.tool_calls,
+            usage=answer.usage,
+            transcript=answer.transcript,
+        )
 
     def _load_or_create(self, conversation_id: str | None) -> Conversation:
         if conversation_id:

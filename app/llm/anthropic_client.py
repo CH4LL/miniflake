@@ -28,10 +28,18 @@ class AnthropicLLMClient:
         settings: Settings,
         *,
         http_client: httpx.Client | None = None,
+        model: str | None = None,
+        thinking: str | None = None,
+        forced_tool_name: str | None = None,
+        use_effort: bool = True,
     ) -> None:
         if not settings.anthropic_api_key:
             raise ValueError("anthropic_api_key is required")
         self._settings = settings
+        self._model = model or settings.anthropic_model
+        self._thinking = thinking or settings.anthropic_thinking
+        self._forced_tool_name = forced_tool_name
+        self._use_effort = use_effort
         self._client = Anthropic(
             api_key=settings.anthropic_api_key,
             max_retries=0,
@@ -73,20 +81,23 @@ class AnthropicLLMClient:
         timeout_s: float,
     ) -> dict[str, Any]:
         kwargs: dict[str, Any] = {
-            "model": self._settings.anthropic_model,
+            "model": self._model,
             "max_tokens": self._settings.anthropic_max_tokens,
             "system": system,
             "messages": self._map_messages(messages),
             "timeout": timeout_s,
         }
-        thinking = self._settings.anthropic_thinking.strip().lower()
+        thinking = self._thinking.strip().lower()
         if thinking == "disabled":
             kwargs["thinking"] = {"type": "disabled"}
         elif thinking == "adaptive":
             kwargs["thinking"] = {"type": "adaptive"}
-        kwargs["output_config"] = {"effort": self._settings.anthropic_effort}
+        if self._use_effort:
+            kwargs["output_config"] = {"effort": self._settings.anthropic_effort}
         if tools:
             kwargs["tools"] = [self._map_tool(tool) for tool in tools]
+            if self._forced_tool_name:
+                kwargs["tool_choice"] = {"type": "tool", "name": self._forced_tool_name}
         return kwargs
 
     def _map_tool(self, tool: ToolSchema) -> dict[str, Any]:

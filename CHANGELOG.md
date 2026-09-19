@@ -4,6 +4,13 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S5: Guardrails
+- Layered guardrails: deterministic pre-checks (`patterns.yaml`), intent classifier on the cheap model, and output numeric grounding check.
+- `GuardrailPipeline` wired into `ConversationService` before and after the agent loop; guardrail refusals and clarifications are persisted as turns.
+- Refusal and clarification templates in `app/guardrails/templates.yaml`; adjustable `GUARDRAIL_*` settings.
+- `AnthropicLLMClient` supports per-instance model, thinking mode, and forced tool choice for the classifier.
+- Unit and eval-driven end-to-end tests for refuse, clarify, fail-open, and ungrounded-answer degradation.
+
 ### S4: Conversation and API
 - `ConversationStore` protocol with `InMemoryConversationStore` (idle TTL, turn-boundary trimming, max conversations).
 - `ConversationService` orchestrating load, optional guardrail hook, agent loop, and save with full turn transcripts.
