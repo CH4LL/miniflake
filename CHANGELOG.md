@@ -4,6 +4,14 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S4: Conversation and API
+- `ConversationStore` protocol with `InMemoryConversationStore` (idle TTL, turn-boundary trimming, max conversations).
+- `ConversationService` orchestrating load, optional guardrail hook, agent loop, and save with full turn transcripts.
+- `ResolvedContext` derived from successful tool results and injected into the system prompt as recently discussed facts.
+- `POST /api/chat` and `POST /api/conversations/reset` with session cookie, uniform error envelope, request-id middleware, and hard request timeout.
+- End-to-end API tests covering multi-turn follow-ups, TTL expiry, validation, internal errors, timeout, and reset.
+- Eval follow-up items in `evals/questions.yaml` (F01–F04) are now runnable against the HTTP API.
+
 ### S3: Agent core
 - `LLMClient` protocol with provider-neutral messages, `AnthropicLLMClient` (strict tools, adaptive thinking, configurable effort), and scripted `FakeLLM`.
 - `AgentLoop` with iteration cap, wall-clock budget, tool dispatch, and opaque thinking-block passthrough.

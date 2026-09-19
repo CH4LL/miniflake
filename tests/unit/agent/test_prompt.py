@@ -28,7 +28,7 @@ def test_templates_load() -> None:
 
 def test_system_prompt_lists_tools_and_geography_levels() -> None:
     registry = default_registry(_settings())
-    prompt = build_system_prompt(registry, _settings())
+    prompt = build_system_prompt(registry, _settings(), context_facts=[])
     for schema in registry.schemas():
         assert schema["name"] in prompt
         assert schema["description"] in prompt

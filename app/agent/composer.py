@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.agent.prompt import load_templates
 from app.data.models import Provenance
-from app.llm.types import Usage
+from app.llm.types import Message, Usage
 from app.tools.results import (
     Ambiguous,
     NotFound,
@@ -26,6 +26,7 @@ class ToolCallTrace(BaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
     result_kind: str
     duration_ms: float
+    data: dict[str, Any] | None = None
 
 
 class AgentAnswer(BaseModel):
@@ -34,6 +35,7 @@ class AgentAnswer(BaseModel):
     provenance: list[Provenance] = Field(default_factory=list)
     tool_calls: list[ToolCallTrace] = Field(default_factory=list)
     usage: Usage = Field(default_factory=Usage)
+    transcript: list[Message] = Field(default_factory=list)
 
 
 class AnswerComposer:

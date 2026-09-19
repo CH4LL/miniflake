@@ -91,6 +91,28 @@ class Settings(BaseSettings):
     )
     agent_llm_retry_enabled: bool = Field(default=True, alias="AGENT_LLM_RETRY_ENABLED")
 
+    response_budget_seconds: float = Field(default=60.0, alias="RESPONSE_BUDGET_SECONDS")
+    api_timeout_margin_seconds: float = Field(default=2.0, alias="API_TIMEOUT_MARGIN_SECONDS")
+    conversation_ttl_seconds: int = Field(default=3600, alias="CONVERSATION_TTL_SECONDS")
+    conversation_max_turns: int = Field(default=20, alias="CONVERSATION_MAX_TURNS")
+    conversation_history_window_turns: int = Field(
+        default=10, alias="CONVERSATION_HISTORY_WINDOW_TURNS"
+    )
+    conversation_max_conversations: int = Field(
+        default=1000, alias="CONVERSATION_MAX_CONVERSATIONS"
+    )
+    max_message_chars: int = Field(default=4000, alias="MAX_MESSAGE_CHARS")
+    session_cookie_name: str = Field(default="miniflake_session", alias="SESSION_COOKIE_NAME")
+    session_cookie_secure: bool = Field(default=False, alias="SESSION_COOKIE_SECURE")
+    session_cookie_samesite: str = Field(default="lax", alias="SESSION_COOKIE_SAMESITE")
+
+    @property
+    def api_request_timeout_seconds(self) -> float:
+        return max(
+            self.response_budget_seconds - self.api_timeout_margin_seconds,
+            self.agent_min_seconds_per_llm_call,
+        )
+
     def acs_wide_table_name(self, vintage: int, series_prefix: str) -> str:
         return self.acs_wide_table_template.format(vintage=vintage, series_prefix=series_prefix)
 

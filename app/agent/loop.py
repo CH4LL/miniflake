@@ -33,8 +33,18 @@ class AgentLoop:
         self._clock = clock
         self._composer = composer or AnswerComposer()
 
-    def run(self, messages: list[Message], deadline: float) -> AgentAnswer:
-        system = build_system_prompt(self._registry, self._settings)
+    def run(
+        self,
+        messages: list[Message],
+        deadline: float,
+        *,
+        context_facts: list[str] | None = None,
+    ) -> AgentAnswer:
+        system = build_system_prompt(
+            self._registry,
+            self._settings,
+            context_facts=context_facts or [],
+        )
         tools = [
             ToolSchema(
                 name=schema["name"],
@@ -44,6 +54,7 @@ class AgentLoop:
             for schema in self._registry.schemas()
         ]
         working_messages = list(messages)
+        transcript: list[Message] = []
         tool_traces: list[ToolCallTrace] = []
         provenance = []
         usage = Usage()
@@ -77,6 +88,9 @@ class AgentLoop:
                 text_blocks = [
                     block.text for block in response.content if isinstance(block, TextBlock)
                 ]
+                final_message = Message(role="assistant", content=response.content)
+                working_messages.append(final_message)
+                transcript.append(final_message)
                 break
 
             if response.stop_reason in {"max_tokens", "other"}:
@@ -87,7 +101,9 @@ class AgentLoop:
                 stop_reason = "llm_error"
                 break
 
-            working_messages.append(Message(role="assistant", content=response.content))
+            assistant_message = Message(role="assistant", content=response.content)
+            working_messages.append(assistant_message)
+            transcript.append(assistant_message)
             tool_result_blocks: list[ToolResultBlock] = []
             for block in response.content:
                 if not isinstance(block, ToolUseBlock):
@@ -96,16 +112,19 @@ class AgentLoop:
                 result = self._registry.dispatch(block.name, block.input, self._repository)
                 duration_ms = (self._clock() - started) * 1000
                 kind = result_kind(result)
+                trace_data = None
+                if isinstance(result, Success):
+                    provenance.extend(result.provenance)
+                    trace_data = result.data.model_dump(mode="json")
                 tool_traces.append(
                     ToolCallTrace(
                         name=block.name,
                         input=dict(block.input),
                         result_kind=kind,
                         duration_ms=duration_ms,
+                        data=trace_data,
                     )
                 )
-                if isinstance(result, Success):
-                    provenance.extend(result.provenance)
                 tool_result_blocks.append(
                     ToolResultBlock(
                         tool_use_id=block.id,
@@ -113,15 +132,19 @@ class AgentLoop:
                         is_error=isinstance(result, ToolError),
                     )
                 )
-            working_messages.append(Message(role="tool", content=tool_result_blocks))
+            tool_message = Message(role="tool", content=tool_result_blocks)
+            working_messages.append(tool_message)
+            transcript.append(tool_message)
 
         if stop_reason is None:
             stop_reason = "iteration_cap"
 
-        return self._composer.compose(
+        answer = self._composer.compose(
             stop_reason=stop_reason,
             text_blocks=text_blocks,
             tool_traces=tool_traces,
             provenance=provenance,
             usage=usage,
         )
+        answer.transcript = transcript
+        return answer

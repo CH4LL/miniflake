@@ -245,3 +245,52 @@ What: `RUN_LIVE_TESTS=1 uv run pytest tests/live/test_agent_live.py` passed on 2
 Why: Stage-end checklist requires opt-in live verification when credentials are available.
 Dropped: n/a
 Refs: specs/S3-agent-core.md, scripts/chat_cli.py
+
+## 2026-09-19  Full turn transcript for CF-3 conversation context
+Stage: S4 | Type: decision
+What: Store the complete per-turn transcript (user message, assistant tool_use, tool_result, final assistant text) and trim only whole turns. Inject resolved facts separately via `ResolvedContext` in the system prompt.
+Why: CF-3 requires conversation context preserved across turns without qualifying scope. Text-only history (user + final assistant text) is cheaper but drops ambiguous candidate lists, exact tool values, and rejected vintages, so follow-ups like "the second one" or "why not that year?" cannot resolve. Without ability to clarify with stakeholders, conservative reading chosen to avoid under-delivering.
+Dropped: Text-only history with context block only.
+Refs: specs/S4-conversation-api.md, requirements CF-3, ADR-005
+
+## 2026-09-19  Hard outer request timeout with cancellation token
+Stage: S4 | Type: decision
+What: `POST /api/chat` runs the synchronous service in a worker thread under `asyncio.wait_for`. On expiry the route returns HTTP 200 with `outcome: error` and the timeout template. A cancellation token prevents a late-finishing turn from saving after the client response is sent.
+Why: The agent loop only checks its deadline between LLM calls; a hung provider or database call can overrun a soft budget alone.
+Dropped: Soft deadline only at the route layer.
+Refs: specs/S4-conversation-api.md
+
+## 2026-09-19  Idle TTL for in-memory conversations
+Stage: S4 | Type: decision
+What: Conversation expiry uses idle time since `updated_at`, not absolute age since `created_at`.
+Why: Session semantics match typical chat usage; an active long conversation should not expire mid-session.
+Dropped: Absolute TTL from creation time.
+Refs: specs/S4-conversation-api.md, ADR-005
+
+## 2026-09-19  Strip prior-turn thinking blocks from LLM history
+Stage: S4 | Type: decision
+What: `history_for_llm` drops `OpaqueBlock` thinking content from completed prior turns while keeping it in storage and in the current turn.
+Why: Anthropic validates thinking signatures on messages sent to the API; prior-turn thinking blocks risk 400 responses without adding follow-up value.
+Dropped: Sending full stored transcripts verbatim to the provider.
+Refs: specs/S4-conversation-api.md
+
+## 2026-09-19  AgentAnswer transcript and trace data for conversation layer
+Stage: S4 | Type: deviation
+What: Extended S3 types: `AgentAnswer.transcript`, `ToolCallTrace.data`, and `context_facts` on `AgentLoop.run` / `build_system_prompt`.
+Why: S4 requires full turn persistence and `ResolvedContext` extraction from tool payloads; the conversation layer cannot reconstruct these from composed text alone.
+Dropped: Re-deriving context by re-parsing tool JSON from stored messages.
+Refs: specs/S4-conversation-api.md
+
+## 2026-09-19  FakeLLM snapshots message lists at call time
+Stage: S4 | Type: decision
+What: `FakeLLM.complete` deep-copies messages when recording calls.
+Why: `AgentLoop` mutates the working message list after `complete()` returns; tests inspecting recorded inputs otherwise see post-call state.
+Dropped: Storing live references to the working list.
+Refs: tests/e2e/test_chat_api.py
+
+## 2026-09-19  S4 conversation and API implemented
+Stage: S4 | Type: decision
+What: Implemented `app/conversation/`, chat routes, error envelope, session cookie, configuration for TTL and response budget, and tests covering all S4 acceptance criteria.
+Why: S4 exit criteria require multi-turn HTTP access with server-side memory before guardrails and the web UI.
+Dropped: n/a
+Refs: specs/S4-conversation-api.md, ARCHITECTURE.md

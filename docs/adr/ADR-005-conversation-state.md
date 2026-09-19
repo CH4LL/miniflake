@@ -14,7 +14,11 @@ Context must persist across turns so that follow-ups such as "and in Florida?" o
 
 ## Decision
 
-Option 2. `ConversationStore` is a protocol with an `InMemoryConversationStore` implementation. Cloud Run is pinned to one instance during the evaluation window so the store is coherent. The stored `ResolvedContext` (last geography ids and names, variable id, year, period) is derived from successful tool results and injected into the system prompt on subsequent turns. Option 3 is the documented production swap, implementable behind the same protocol.
+Option 2. `ConversationStore` is a protocol with an `InMemoryConversationStore` implementation. Cloud Run is pinned to one instance during the evaluation window so the store is coherent. Each turn stores the full transcript (user message, assistant tool-use blocks, tool results, final assistant text); trimming drops whole turns so provider message pairing stays valid. The stored `ResolvedContext` (last geography ids and names, variable id, year) is derived from successful tool results and injected into the system prompt on subsequent turns. Prior-turn thinking blocks are stripped when building the LLM message list. Option 3 is the documented production swap, implementable behind the same protocol.
+
+## Amendment (2026-09-19)
+
+Full turn transcripts are stored, not text-only summaries, to satisfy CF-3 conversation context preservation without assuming which details a follow-up may reference. See the decision log entry on the CF-3 conundrum.
 
 ## Consequences
 

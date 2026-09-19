@@ -17,7 +17,9 @@ class FakeLLM:
         *,
         timeout_s: float,
     ) -> LLMResponse:
-        self.calls.append((system, messages, tools, timeout_s))
+        self.calls.append(
+            (system, [message.model_copy(deep=True) for message in messages], tools, timeout_s)
+        )
         if self._index >= len(self._script):
             raise RuntimeError("FakeLLM called more times than scripted")
         item = self._script[self._index]

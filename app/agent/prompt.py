@@ -21,7 +21,12 @@ def load_templates(path: Path | None = None) -> dict[str, str]:
     return {key: str(value).strip() for key, value in raw.items()}
 
 
-def build_system_prompt(registry: ToolRegistry, settings: Settings) -> str:
+def build_system_prompt(
+    registry: ToolRegistry,
+    settings: Settings,
+    *,
+    context_facts: list[str],
+) -> str:
     catalog = load_variable_catalog_spec(settings.variable_catalog_spec_file())
     topics = sorted({series.topic for series in catalog.series})
     template = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
@@ -31,4 +36,5 @@ def build_system_prompt(registry: ToolRegistry, settings: Settings) -> str:
         geography_levels=[level.value for level in GeoLevel],
         topics=topics,
         vintages=settings.acs_vintages,
+        context_facts=context_facts,
     )

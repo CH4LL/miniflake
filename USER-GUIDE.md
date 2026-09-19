@@ -4,7 +4,7 @@ Miniflake answers questions about the US population using American Community Sur
 
 ## Current state
 
-The agent core is available via the command-line runner. It answers single-turn census questions using typed tools over Snowflake and composes grounded answers with provenance. The web chat page and HTTP API arrive in later stages.
+The agent is available over HTTP and via the command-line runner. Multi-turn conversations preserve full turn transcripts server-side and inject resolved geography, variable, and vintage facts into follow-up turns. The web chat page and demo login arrive in later stages.
 
 ## Using the chat page
 
@@ -22,7 +22,7 @@ The agent answers US census questions backed by SafeGraph ACS 5-year block-group
 - **Median and rate measures** (income, age, poverty rate, and similar) are available only at block-group level.
 - **Place and CBSA** levels are not supported in the current dataset.
 - **Specify a year** when you need a particular ACS vintage; otherwise the latest available vintage is used.
-- **Follow-up questions** that carry context from a prior turn require the conversation API in S4.
+- **Follow-up questions** reuse the last resolved geography, variable, and vintage from earlier turns in the same session.
 - The agent refuses to invent numbers. If it cannot look up a value, it explains why and may ask for clarification.
 
 Intent classification and templated refusals for off-topic or harmful input arrive in S5.
@@ -58,4 +58,51 @@ Adjust agent timeouts and iteration limits with the `AGENT_*` and `ANTHROPIC_*` 
 
 ## API
 
-Added in S4. Will document `POST /api/chat`, `POST /api/conversations/reset`, `POST /api/login`, `GET /api/health`, and the error envelope.
+### Health
+
+`GET /api/health` returns service status and version.
+
+### Chat
+
+`POST /api/chat` with JSON body `{"message": "your question"}`.
+
+The response includes:
+
+- `conversation_id` — server-side conversation identifier
+- `text` — answer text
+- `outcome` — `answer`, `clarify`, `unanswerable`, or `error`
+- `provenance` — data-source records for successful lookups
+- `tool_calls` — tool names and result kinds for this turn
+- `latency_ms` — server-side latency
+
+An HTTP session cookie identifies the conversation across turns. Send the cookie on each request; the server stores the full turn transcript and resolved context.
+
+Example with curl (cookie jar):
+
+```bash
+curl -c cookies.txt -b cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What is the population of Texas?"}' \
+  http://localhost:8000/api/chat
+```
+
+Follow up in the same session:
+
+```bash
+curl -b cookies.txt -c cookies.txt \
+  -H "Content-Type: application/json" \
+  -d '{"message":"And in Florida?"}' \
+  http://localhost:8000/api/chat
+```
+
+### Reset conversation
+
+`POST /api/conversations/reset` clears server-side history and starts a fresh conversation. The response includes a new `conversation_id` and updates the session cookie.
+
+### Errors
+
+Errors return `{"error": {"code", "message", "request_id"}}`. Codes include `invalid_input`, `timeout`, `upstream_unavailable`, and `internal`. Every response includes an `X-Request-Id` header.
+
+When the request exceeds the configured response budget, the API returns HTTP 200 with `outcome: "error"` and a timeout message rather than a 5xx.
+
+Demo authentication for the API arrives in S6.

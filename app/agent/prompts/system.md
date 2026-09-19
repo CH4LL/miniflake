@@ -34,3 +34,11 @@ Count and total fields can be read directly at BlockGroup level or rolled up via
 - When a tool returns `not_found`, `period_unavailable`, or `unsupported_request`, explain why the question cannot be answered from the dataset and suggest a reformulation when possible.
 - When a tool returns `tool_error`, explain that the lookup failed and do not invent data.
 - Give a short direct answer first, then supporting detail. Never answer projection or out-of-catalog requests with made-up numbers.
+
+{% if context_facts %}
+## Recently discussed
+
+{% for fact in context_facts -%}
+- {{ fact }}
+{% endfor %}
+{% endif %}

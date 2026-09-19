@@ -250,3 +250,85 @@ def test_repository_error_surfaces_as_tool_error_and_error_outcome() -> None:
     )
     assert answer.tool_calls[-1].result_kind == "tool_error"
     assert answer.outcome == "error"
+
+
+def test_happy_path_includes_transcript_with_tool_messages() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_geo",
+                        name="find_geography",
+                        input={"query": "Texas", "level": "State"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="Texas is a state.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    answer = _loop(llm).run(_user_message("Tell me about Texas."), deadline=time.monotonic() + 60)
+    assert len(answer.transcript) == 3
+    assert answer.transcript[0].role == "assistant"
+    assert isinstance(answer.transcript[0].content[0], ToolUseBlock)
+    assert answer.transcript[1].role == "tool"
+    assert answer.transcript[2].role == "assistant"
+    assert isinstance(answer.transcript[2].content[0], TextBlock)
+
+
+def test_success_trace_includes_data_payload() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_value",
+                        name="get_value",
+                        input={"field_id": "B01003e1", "geo_id": "48"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="Texas population is available from ACS.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    answer = _loop(llm).run(
+        _user_message("What is the population of Texas?"), deadline=time.monotonic() + 60
+    )
+    value_trace = next(trace for trace in answer.tool_calls if trace.name == "get_value")
+    assert value_trace.data is not None
+    assert value_trace.data["field_id"] == "B01003e1"
+    assert value_trace.data["geo_id"] == "48"
+
+
+def test_context_facts_appear_in_system_prompt() -> None:
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[TextBlock(text="Florida follows the same measure.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            )
+        ]
+    )
+    loop = _loop(llm)
+    loop.run(
+        _user_message("And in Florida?"),
+        deadline=time.monotonic() + 60,
+        context_facts=["Variable: Total Population (B01003e1)", "Geography: Texas (48)"],
+    )
+    system_prompt = llm.calls[0][0]
+    assert "Recently discussed" in system_prompt
+    assert "Total Population" in system_prompt
+    assert "Texas" in system_prompt
