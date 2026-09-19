@@ -4,6 +4,15 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S7: Deployment
+- Multi-stage Dockerfile with digest-pinned base image, non-root user, runtime-only dependencies, and fixtures bundled for catalog loading.
+- `connect_snowflake` moved from `scripts/` to `app/data/connection.py`; container no longer imports from `scripts/`.
+- Structured JSON logging (`app/logging.py`) with request and chat-turn fields for Cloud Logging.
+- Startup Snowflake warm-up on a background thread (`app/warmup.py`, `WARMUP_ENABLED`).
+- `scripts/setup_secrets.sh` for idempotent Secret Manager bootstrap from `.env`.
+- `scripts/deploy.sh` extended with Cloud Run settings from `deploy/cloudrun.env`, secret mounting, and post-deploy smoke test.
+- `scripts/smoke_deployed.py` validates health, login, golden lookup question, and latency budget on the public URL.
+
 ### S6: Web UI and demo auth
 - Static chat page at `/` with message list, outcome badges, provenance expander, loading indicator, error banner, and new-conversation button.
 - `POST /api/login` and `GET /api/session` for passphrase-based demo authentication with HMAC-signed HTTP-only cookie.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -8,8 +9,11 @@ from pydantic import BaseModel, Field
 
 from app.agent.prompt import load_templates
 from app.api.deps import AppContainer
+from app.api.errors import get_request_id
 from app.conversation.service import CancellationToken
 from app.data.models import Provenance
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -72,6 +76,34 @@ def _chat_response(turn: Any) -> ChatResponse:
     )
 
 
+def _log_chat_turn(request: Request, turn: Any) -> None:
+    answer = turn.answer
+    tool_calls = [
+        {"name": trace.name, "duration_ms": trace.duration_ms} for trace in answer.tool_calls
+    ]
+    snowflake_ms = round(
+        sum(
+            provenance.duration_ms
+            for provenance in answer.provenance
+            if provenance.duration_ms is not None
+        ),
+        2,
+    )
+    logger.info(
+        "chat turn completed",
+        extra={
+            "request_id": get_request_id(request),
+            "conversation_id": turn.conversation_id,
+            "outcome": answer.outcome,
+            "latency_ms": round(turn.latency_ms, 2),
+            "tool_calls": tool_calls,
+            "input_tokens": answer.usage.input_tokens,
+            "output_tokens": answer.usage.output_tokens,
+            "snowflake_ms": snowflake_ms,
+        },
+    )
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     body: ChatRequest,
@@ -97,6 +129,19 @@ async def chat(
         timeout_text = load_templates()["timeout"].replace("{{ attempted }}", "none")
         resolved_id = conversation_id or container.store.create().id
         _set_session_cookie(response, container, resolved_id)
+        logger.info(
+            "chat turn completed",
+            extra={
+                "request_id": get_request_id(request),
+                "conversation_id": resolved_id,
+                "outcome": "error",
+                "latency_ms": round(settings.api_request_timeout_seconds * 1000, 2),
+                "tool_calls": [],
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "snowflake_ms": 0.0,
+            },
+        )
         return ChatResponse(
             conversation_id=resolved_id,
             text=timeout_text,
@@ -106,6 +151,7 @@ async def chat(
             latency_ms=settings.api_request_timeout_seconds * 1000,
         )
     _set_session_cookie(response, container, turn.conversation_id)
+    _log_chat_turn(request, turn)
     return _chat_response(turn)
 
 

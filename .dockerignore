@@ -10,3 +10,6 @@ evals
 *.p8
 *.pem
 .cursorrules
+.github
+scripts
+deploy

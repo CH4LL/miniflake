@@ -6,6 +6,12 @@ Miniflake answers questions about the US population using American Community Sur
 
 The agent is available over the web chat page, HTTP API, and command-line runner. Multi-turn conversations preserve full turn transcripts server-side and inject resolved geography, variable, and vintage facts into follow-up turns. Demo authentication protects the API and chat page when enabled.
 
+## Public demo
+
+When deployed to Cloud Run, open https://miniflake-eowbm7u4ua-uk.a.run.app (or the URL printed by `scripts/deploy.sh`). Log in with the demo passphrase, available from the author on request. The chat page and API behave the same as locally; cookies are marked secure on HTTPS.
+
+Cloud Run keeps one warm instance during the review window. Conversations are stored in memory on that instance and are lost if it restarts. The server runs a Snowflake warm-up query on startup so the first question after deploy completes within the response budget.
+
 ## Using the chat page
 
 Open the application root URL in a browser (for example `http://localhost:8000/` when running locally). If demo auth is enabled, you will see a passphrase login form first.

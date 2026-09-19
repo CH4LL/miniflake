@@ -6,7 +6,7 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-19 (S6 done).
+Last updated: 2026-09-19 (S7 done).
 
 ## Stages
 
@@ -19,7 +19,7 @@ Last updated: 2026-09-19 (S6 done).
 | S4 | Conversation and API | 2.0 h | done | [S4-conversation-api.md](specs/S4-conversation-api.md) |
 | S5 | Guardrails | 2.0 h | done | [S5-guardrails.md](specs/S5-guardrails.md) |
 | S6 | Web UI and demo auth | 2.0 h | done | [S6-web-ui-auth.md](specs/S6-web-ui-auth.md) |
-| S7 | Deployment | 1.5 h | todo | [S7-deployment.md](specs/S7-deployment.md) |
+| S7 | Deployment | 1.5 h | done | [S7-deployment.md](specs/S7-deployment.md) |
 | S8 | Evaluation and hardening | 3.0 h | todo | [S8-evaluation-hardening.md](specs/S8-evaluation-hardening.md) |
 | S9 | Documentation and reflection | 2.0 h | todo | [S9-docs-reflection.md](specs/S9-docs-reflection.md) |
 | S10 | Public data supplement | 2.0 h | todo | [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) |

@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-import snowflake.connector
 from jinja2 import Environment, FileSystemLoader
 
-from app.config import Settings, get_settings
+from app.config import get_settings
+from app.data.connection import connect_snowflake
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 OUTPUT_PATH = Path(__file__).parent.parent / "docs" / "data" / "dataset.md"
@@ -272,33 +272,6 @@ def render_dataset_doc(result: InspectionResult) -> str:
     template = env.get_template("dataset.md.j2")
     vintages = sorted({t.vintage for t in result.acs_wide_tables if t.vintage})
     return template.render(result=result, vintages=vintages)
-
-
-def connect_snowflake(settings: Settings):
-    from cryptography.hazmat.backends import default_backend
-    from cryptography.hazmat.primitives import serialization
-
-    key_bytes = settings.load_private_key_bytes()
-    passphrase = settings.snowflake_private_key_passphrase
-    private_key = serialization.load_pem_private_key(
-        key_bytes,
-        password=passphrase.encode() if passphrase else None,
-        backend=default_backend(),
-    )
-    pkb = private_key.private_bytes(
-        encoding=serialization.Encoding.DER,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    return snowflake.connector.connect(
-        account=settings.snowflake_account,
-        user=settings.snowflake_user,
-        role=settings.snowflake_role,
-        warehouse=settings.snowflake_warehouse,
-        database=settings.snowflake_database,
-        schema=settings.snowflake_schema,
-        private_key=pkb,
-    )
 
 
 def main() -> None:

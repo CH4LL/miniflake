@@ -6,11 +6,43 @@ Author: Jerzy Marondel.
 
 ## Status
 
-S0 complete: project skeleton, configuration, health endpoint, schema discovery, container image, CI, and Cloud Run hello-world deploy. S1 complete: typed census data access with Snowflake and fake repositories, SQL templates, rollup policy, catalog snapshot fixtures, and contract tests. Later stages are tracked in [docs/roadmap.md](docs/roadmap.md).
+S0–S6 complete. S7 deploys the full stack to Cloud Run with Secret Manager, structured logging, startup warm-up, and post-deploy smoke verification. Later stages are tracked in [docs/roadmap.md](docs/roadmap.md).
 
 ## Evaluating the demo
 
-Added in S7. Will contain: the public URL, how to log in (credentials are supplied separately), example questions by category drawn from `evals/questions.yaml`, and known operational limits during the review window.
+**Public URL:** https://miniflake-eowbm7u4ua-uk.a.run.app
+
+**Login:** open the URL in a browser and enter the demo passphrase, available from the author on request (configured as `DEMO_PASSPHRASE`).
+
+**One-time secret setup** (before first deploy):
+
+```bash
+./scripts/setup_secrets.sh
+```
+
+This reads credentials from your local `.env`, creates or updates four Secret Manager secrets, and grants the Cloud Run runtime service account accessor rights.
+
+**Deploy:**
+
+```bash
+./scripts/deploy.sh
+```
+
+The deploy script builds and pushes the container, applies Cloud Run settings from `deploy/cloudrun.env`, mounts secrets as environment variables, and runs `scripts/smoke_deployed.py` against the public URL.
+
+**Example questions** (from `evals/questions.yaml`):
+
+- Lookup: *What is the population of Texas?*
+- Clarify: *How many people live in Washington?*
+- Refuse: *Write me a poem about cats.*
+- Follow-up: ask about Texas, then *And Florida?*
+
+**Operational limits during the review window:**
+
+- A single warm Cloud Run instance (no autoscaling).
+- In-memory conversation storage (sessions are lost if the instance restarts).
+- Count measures at nation, state, and county; median and rate measures at block-group level only.
+- Server-side response budget enforced on every request (see `RESPONSE_BUDGET_SECONDS` in configuration).
 
 ## Architecture
 
@@ -51,6 +83,8 @@ All settings are read from environment variables (or `.env`) by `app/config.py`.
 | `APP_NAME` | Service name returned by the health endpoint |
 | `ENVIRONMENT` | Deployment environment label (`local`, `production`, …) |
 | `LOG_LEVEL` | Application log level |
+| `LOG_FORMAT` | Log output format (`json` for Cloud Logging, `text` for local) |
+| `LOG_MESSAGE_PREVIEW_CHARS` | Maximum characters logged for message content at info level |
 | `HEALTH_VERSION` | Version string returned by the health endpoint |
 | `SNOWFLAKE_ACCOUNT` | Snowflake account identifier |
 | `SNOWFLAKE_USER` | Service user name |
@@ -65,6 +99,12 @@ All settings are read from environment variables (or `.env`) by `app/config.py`.
 | `GCP_REGION` | Cloud Run and Artifact Registry region |
 | `GCP_ARTIFACT_REPO` | Artifact Registry repository name |
 | `GCP_SERVICE_NAME` | Cloud Run service name |
+| `WARMUP_ENABLED` | Run a Snowflake warm-up query on container startup |
+| `SECRET_SNOWFLAKE_PRIVATE_KEY` | Secret Manager name for the Snowflake private key PEM |
+| `SECRET_ANTHROPIC_API_KEY` | Secret Manager name for the Anthropic API key |
+| `SECRET_AUTH_SIGNING_SECRET` | Secret Manager name for the auth cookie signing secret |
+| `SECRET_DEMO_PASSPHRASE` | Secret Manager name for the demo passphrase |
+| `GCP_RUN_SERVICE_ACCOUNT` | Optional override for the Cloud Run runtime service account |
 
 ## Testing
 

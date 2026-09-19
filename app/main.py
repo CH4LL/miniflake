@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.api.auth import DemoAuth, install_auth_middleware
@@ -9,17 +14,34 @@ from app.api.health import router as health_router
 from app.api.static import mount_static
 from app.api.static import router as static_router
 from app.config import get_settings
+from app.logging import configure_logging
+from app.warmup import warm_up
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    container: AppContainer = app.state.container
+    if container.settings.warmup_enabled:
+        thread = threading.Thread(target=warm_up, args=(container,), daemon=True)
+        thread.start()
+    yield
+    close = getattr(container.repository, "close", None)
+    if callable(close):
+        close()
 
 
 def create_app(container: AppContainer | None = None) -> FastAPI:
-    app = FastAPI(title="Miniflake")
-    register_error_handlers(app)
-
     if container is None:
         settings = get_settings()
-        app.state.container = build_container(settings)
+        configure_logging(settings)
+        resolved_container = build_container(settings)
     else:
-        app.state.container = container
+        configure_logging(container.settings)
+        resolved_container = container
+
+    app = FastAPI(title="Miniflake", lifespan=lifespan)
+    register_error_handlers(app)
+    app.state.container = resolved_container
 
     demo_auth = DemoAuth(app.state.container.settings)
     app.state.demo_auth = demo_auth

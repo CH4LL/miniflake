@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     app_name: str = Field(default="miniflake", alias="APP_NAME")
     environment: str = Field(default="local", alias="ENVIRONMENT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_format: str = Field(default="json", alias="LOG_FORMAT")
+    log_message_preview_chars: int = Field(default=120, alias="LOG_MESSAGE_PREVIEW_CHARS")
     health_version: str = Field(default="0.1.0", alias="HEALTH_VERSION")
 
     snowflake_account: str = Field(alias="SNOWFLAKE_ACCOUNT")
@@ -135,6 +137,8 @@ class Settings(BaseSettings):
     auth_signing_secret: str | None = Field(default=None, alias="AUTH_SIGNING_SECRET")
     auth_cookie_name: str = Field(default="miniflake_auth", alias="AUTH_COOKIE_NAME")
     auth_cookie_max_age_seconds: int = Field(default=86400, alias="AUTH_COOKIE_MAX_AGE_SECONDS")
+
+    warmup_enabled: bool = Field(default=True, alias="WARMUP_ENABLED")
 
     @property
     def api_request_timeout_seconds(self) -> float:

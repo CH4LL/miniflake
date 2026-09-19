@@ -3,7 +3,7 @@ import os
 import pytest
 
 from app.config import Settings, get_settings
-from scripts.discover_schema import connect_snowflake
+from app.data.connection import connect_snowflake
 
 pytestmark = pytest.mark.live
 

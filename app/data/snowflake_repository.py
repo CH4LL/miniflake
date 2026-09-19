@@ -12,6 +12,7 @@ from app.data.catalog import (
     load_variable_catalog_spec,
     variable_from_metadata_row,
 )
+from app.data.connection import connect_snowflake
 from app.data.errors import RepositoryError
 from app.data.execute_guard import (
     assert_read_only,
@@ -41,7 +42,6 @@ from app.data.sql_loader import (
     quote_identifier,
     render_sql_template,
 )
-from scripts.discover_schema import connect_snowflake
 
 SQL_DIR = Path(__file__).resolve().parent / "sql"
 BLOCK_GROUP_COLUMN = "CENSUS_BLOCK_GROUP"

@@ -393,3 +393,45 @@ What: With `DEMO_PASSPHRASE` and `AUTH_SIGNING_SECRET` configured in `.env`, ful
 Why: Stage-end checklist requires opt-in live verification when credentials are available.
 Dropped: n/a
 Refs: specs/S6-web-ui-auth.md
+
+## 2026-09-19  S7 connect_snowflake moved to app layer
+Stage: S7 | Type: decision
+What: Moved `connect_snowflake` from `scripts/discover_schema.py` to `app/data/connection.py` and added `tests/unit/test_no_scripts_import.py` to prevent `app/` from importing `scripts/`.
+Why: The runtime container copies only `app/`, `web`, and `fixtures`; importing `scripts` caused `ModuleNotFoundError` on `/api/chat`.
+Dropped: Keeping connection logic in the discovery script.
+Refs: app/data/connection.py, Dockerfile, specs/S7-deployment.md
+
+## 2026-09-19  S7 fixtures bundled in container image
+Stage: S7 | Type: deviation
+What: Added `COPY fixtures ./fixtures` to the Dockerfile; `SnowflakeCensusRepository` loads catalog spec and state FIPS names from this directory at startup.
+Why: Without fixtures the container failed to build the repository even after fixing the scripts import.
+Dropped: Embedding catalog paths only in dev environments.
+Refs: Dockerfile, app/data/snowflake_repository.py
+
+## 2026-09-19  S7 warm-up on background thread
+Stage: S7 | Type: decision
+What: FastAPI lifespan starts `warm_up` on a daemon thread so Cloud Run readiness is not blocked while the Snowflake warehouse resumes.
+Why: Synchronous warm-up would delay the startup probe; the spec requires warm-up before the first user request, not before the process listens.
+Dropped: Blocking lifespan warm-up before accepting traffic.
+Refs: app/warmup.py, app/main.py, specs/S7-deployment.md
+
+## 2026-09-19  S7 deployment implemented
+Stage: S7 | Type: decision
+What: Hardened multi-stage Dockerfile, structured JSON logging, Secret Manager bootstrap script, Cloud Run deploy with settings from `deploy/cloudrun.env`, and post-deploy smoke test (`scripts/smoke_deployed.py`).
+Why: S7 exit criteria require a public HTTPS deployment with secrets outside the image, observable logs, and end-to-end smoke verification.
+Dropped: n/a
+Refs: specs/S7-deployment.md, ARCHITECTURE.md, ADR-006
+
+## 2026-09-19  S7 Cloud Run startup probe tuning
+Stage: S7 | Type: deviation
+What: `deploy/cloudrun.env` uses probe timeout below period and a higher failure threshold; initial values used timeout above period and failed `gcloud run deploy`.
+Why: Cloud Run rejects startup probes where `timeout_seconds >= period_seconds`.
+Dropped: A single long probe timeout value.
+Refs: deploy/cloudrun.env, scripts/deploy.sh
+
+## 2026-09-19  S7 live deploy and smoke verification passed
+Stage: S7 | Type: decision
+What: On 2026-09-19, `scripts/setup_secrets.sh` and `scripts/deploy.sh` succeeded; post-deploy smoke test returned `outcome=answer` within budget; Cloud Logging shows structured fields (`request_id`, `outcome`, `latency_ms`, `tool_calls`, token usage, `snowflake_ms`).
+Why: Stage-end checklist requires deployed verification and observable logs.
+Dropped: n/a
+Refs: specs/S7-deployment.md, README.md

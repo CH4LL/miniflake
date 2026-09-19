@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from typing import Literal
 
@@ -47,8 +48,20 @@ def register_error_handlers(app: FastAPI) -> None:
     async def request_id_middleware(request: Request, call_next):
         incoming = request.headers.get("X-Request-Id")
         request.state.request_id = incoming or str(uuid.uuid4())
+        started = time.perf_counter()
         response = await call_next(request)
         response.headers["X-Request-Id"] = request.state.request_id
+        latency_ms = round((time.perf_counter() - started) * 1000, 2)
+        logger.info(
+            "request completed",
+            extra={
+                "request_id": request.state.request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "latency_ms": latency_ms,
+            },
+        )
         return response
 
     @app.exception_handler(RequestValidationError)
