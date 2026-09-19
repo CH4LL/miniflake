@@ -1,0 +1,115 @@
+# S2: Tool layer
+
+Status: see [roadmap.md](../roadmap.md). Estimate: 2 h. Depends on S1.
+
+## Goal
+
+Typed tools that the LLM can call, each mapping to one or two repository methods and returning a result whose shape makes ambiguity, absence and unavailability explicit. The tool layer is where "this cannot be answered from the data" becomes a value rather than a hallucination opportunity.
+
+## Scope
+
+1. Tool contract: input model, result model, `run` function, LLM-facing description.
+2. Six tools: `find_geography`, `find_variable`, `get_value`, `rank_geographies`, `get_trend`, `compare`.
+3. `ToolRegistry` producing JSON Schema tool definitions and dispatching calls by name.
+4. Outcome types shared by all tools.
+5. Tool descriptions authored for the LLM, stored alongside each tool.
+
+## Out of scope
+
+Calling the LLM, prompt composition, natural-language answer text.
+
+## Tool contract (`app/tools/base.py`)
+
+```python
+class Tool(Protocol):
+    name: str
+    description: str
+    input_model: type[BaseModel]
+    def run(self, repository: CensusRepository, input: BaseModel) -> ToolResult: ...
+```
+
+`ToolResult` is a discriminated union:
+
+- `Success(data: BaseModel, provenance: list[Provenance])`
+- `Ambiguous(candidates: list[BaseModel], hint: str)`: more than one plausible match; `hint` tells the model how to disambiguate (e.g. ask for the state).
+- `NotFound(what: str, suggestions: list[str])`: nothing matched; `suggestions` are close alternatives from the catalog.
+- `PeriodUnavailable(requested: str, available: list[str])`: the geography and variable exist but not for the requested date or period.
+- `UnsupportedRequest(reason: str)`: the request is well-formed but the dataset cannot express it (e.g. block-group level, a variable outside the curated catalog).
+- `ToolError(message: str, retryable: bool)`: repository failure.
+
+Every variant serializes to JSON for the LLM with a `kind` discriminator.
+
+## Tools
+
+### find_geography
+
+Input: `query: str`, `level: GeoLevel | None`, `within_state: str | None`.
+Behaviour: search the repository; a single exact match at the requested level is `Success`; multiple matches with different parents is `Ambiguous` listing name, level and state for each; no match is `NotFound` with the closest names.
+
+### find_variable
+
+Input: `query: str`, `topic: str | None`.
+Behaviour: search the curated catalog; return `Success` with up to a configured number of candidates ranked by match quality when they belong to the same series, `Ambiguous` when candidates span different series, `NotFound` with topic suggestions otherwise.
+
+### get_value
+
+Input: `variable_id: str`, `geo_id: str`, `year: int | None`, `period: MeasurementPeriod | None`.
+Behaviour: resolve the date (latest available if `year` is omitted), fetch the observation, return `Success` with value, unit, date, measurement period and geography name. If the year is not available, return `PeriodUnavailable` with the available years.
+
+### rank_geographies
+
+Input: `variable_id: str`, `level: GeoLevel`, `within_geo_id: str | None`, `year: int | None`, `order: "asc" | "desc"`, `limit: int`.
+Behaviour: rank at the given level, optionally within a parent. Return `Success` with an ordered list of (geography, value). Ranking of median or rate variables is allowed; aggregation across geographies is never performed here.
+
+### get_trend
+
+Input: `variable_id: str`, `geo_id: str`, `start_year: int | None`, `end_year: int | None`.
+Behaviour: return the time series, with a note on measurement period consistency (1YR and 5YR values are never mixed in one series; the tool picks the period with the longest coverage and reports it).
+
+### compare
+
+Input: `variable_id: str`, `geo_ids: list[str]` (2 to a configured maximum), `year: int | None`.
+Behaviour: fetch observations for all geographies at a common date. If a common date does not exist, return `PeriodUnavailable` listing dates per geography. Return `Success` with values and the absolute and relative difference between the first two entries.
+
+## Registry (`app/tools/registry.py`)
+
+- `register(tool)`; duplicate names raise at startup.
+- `schemas()` returns the list of tool definitions in the provider-neutral shape `{name, description, input_schema}` derived from the pydantic model with `additionalProperties: false`.
+- `dispatch(name, raw_input, repository)` validates input against the model, runs the tool, catches `RepositoryError` into `ToolError`, and catches validation errors into `UnsupportedRequest` with the validation message, so the LLM can self-correct.
+- `default_registry(settings)` registers the six tools; tools can be disabled by configuration to support the cut policy.
+
+## Provenance
+
+Each `Success` carries the list of `Provenance` objects from every repository call it made. The composer in S3 renders these; tools must not drop or merge them.
+
+## Acceptance criteria
+
+- Given the fake repository, when `find_geography("Texas", level=State)` runs, then the result is `Success` with the Texas geography.
+- Given `find_geography("Springfield")`, then the result is `Ambiguous` with candidates in more than one state and a hint mentioning the state.
+- Given `find_geography("Atlantis")`, then the result is `NotFound` with a non-empty suggestion list.
+- Given `get_value` for a valid variable and geography with a year outside the fixture range, then the result is `PeriodUnavailable` listing the available years.
+- Given `get_value` with no year, then the result uses the latest date and provenance names it.
+- Given `rank_geographies` at level `County` within a state, then the results all have that state as parent and are ordered as requested.
+- Given `compare` with geographies that share no date, then the result is `PeriodUnavailable`.
+- Given `compare` with one geo id, then dispatch returns `UnsupportedRequest` describing the minimum.
+- Given a repository that raises `RepositoryError`, when any tool is dispatched, then the result is `ToolError` and nothing propagates.
+- Given the registry, when `schemas()` is called, then every schema is valid JSON Schema, has `additionalProperties: false`, and the names are unique.
+- Given a tool disabled in configuration, then it is absent from `schemas()` and dispatching it returns `UnsupportedRequest`.
+
+## Tests to write first
+
+1. `tests/unit/tools/test_results.py`: serialization of each `ToolResult` variant including the `kind` discriminator.
+2. `tests/unit/tools/test_registry.py`: schema generation, duplicate registration, dispatch validation, error wrapping, disabled tools.
+3. `tests/component/tools/test_find_geography.py`, `test_find_variable.py`, `test_get_value.py`, `test_rank_geographies.py`, `test_get_trend.py`, `test_compare.py`: each covering `Success` and every applicable outcome against `FakeCensusRepository`.
+
+## Files
+
+- `app/tools/__init__.py`, `base.py`, `results.py`, `registry.py`
+- `app/tools/find_geography.py`, `find_variable.py`, `get_value.py`, `rank_geographies.py`, `get_trend.py`, `compare.py`
+- tests listed above
+
+## Documentation updates at stage end
+
+- `ARCHITECTURE.md`: tool list and outcome types.
+- `docs/EXTENDING.md`: "add a tool" section written against the real contract.
+- `CHANGELOG.md`, `docs/roadmap.md`.

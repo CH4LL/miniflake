@@ -13,4 +13,6 @@
   ARCHITECTURE.md must contain a concise architectural overview of the existing elements. More specific feature descriptions may be created in ./docs as appropriate
   USER-GUIDE.md must contain a concise, human-friendly instruction on how to use existing features
   ./docs/requirements.md contains the full project requirements
+  Before starting work, follow ./docs/agent-workflow.md: ./docs/roadmap.md names the current stage and ./docs/specs/ holds its contract
+  ADRs live in ./docs/adr/; evals/questions.yaml is the behavioural definition of the agent and must be kept in sync with behaviour changes
 </global rules>

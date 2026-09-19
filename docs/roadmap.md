@@ -1,0 +1,105 @@
+# Roadmap
+
+Single source of truth for what has been built and what comes next. An agent picking up work reads this file, finds the first stage whose status is not `done` or `cut`, and opens its spec under [specs/](specs/). The procedure is described in [agent-workflow.md](agent-workflow.md).
+
+Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and the "Last updated" line whenever a stage changes state. Never reorder stages; if priorities change, record the reason in [decision_log.md](decision_log.md).
+
+Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
+
+Last updated: 2026-09-19 (roadmap created; no stage started).
+
+## Stages
+
+| Stage | Name | Est. | Status | Spec |
+| :--- | :--- | ---: | :--- | :--- |
+| S0 | Foundations and walking skeleton | 3.0 h | todo | [S0-foundations.md](specs/S0-foundations.md) |
+| S1 | Data access layer | 3.0 h | todo | [S1-data-layer.md](specs/S1-data-layer.md) |
+| S2 | Tool layer | 2.0 h | todo | [S2-tool-layer.md](specs/S2-tool-layer.md) |
+| S3 | Agent core | 3.0 h | todo | [S3-agent-core.md](specs/S3-agent-core.md) |
+| S4 | Conversation and API | 2.0 h | todo | [S4-conversation-api.md](specs/S4-conversation-api.md) |
+| S5 | Guardrails | 2.0 h | todo | [S5-guardrails.md](specs/S5-guardrails.md) |
+| S6 | Web UI and demo auth | 2.0 h | todo | [S6-web-ui-auth.md](specs/S6-web-ui-auth.md) |
+| S7 | Deployment | 1.5 h | todo | [S7-deployment.md](specs/S7-deployment.md) |
+| S8 | Evaluation and hardening | 3.0 h | todo | [S8-evaluation-hardening.md](specs/S8-evaluation-hardening.md) |
+| S9 | Documentation and reflection | 2.0 h | todo | [S9-docs-reflection.md](specs/S9-docs-reflection.md) |
+
+## Stage summaries
+
+### S0 Foundations and walking skeleton
+
+Goal: remove every external unknown before writing product code. Snowflake trial account with both candidate listings, service user with key-pair auth, discovery script that documents the dataset, confirmed dataset choice, Python project skeleton with configuration and health endpoint, container image, CI, and a hello-world deployment to Cloud Run.
+
+Exit criteria: `GET /api/health` returns OK locally and on the Cloud Run URL; CI lint and tests green; `docs/data/dataset.md` filled from the discovery script; ADR-003 status set to accepted.
+
+### S1 Data access layer
+
+Goal: a `CensusRepository` protocol with a Snowflake implementation (read-only guard, timeouts, row caps, retry) and a fixture-backed fake. SQL templates for geography lookup, variable search, value lookup, ranking and time series. Catalog snapshot script producing fixtures for supported geographies and a curated variable catalog.
+
+Exit criteria: every SQL template answers its fixture question in unit tests; fake repository passes the same contract tests as the Snowflake implementation; opt-in live smoke test passes.
+
+### S2 Tool layer
+
+Goal: typed tools over the repository with explicit outcome types (`Ambiguous`, `NotFound`, `PeriodUnavailable`), a `ToolRegistry` that emits LLM tool schemas, and a `Provenance` record per tool result. Tool descriptions written for the LLM.
+
+Exit criteria: each tool has tests for the success path and each outcome type against the fake repository; registry emits valid JSON Schema for every tool.
+
+### S3 Agent core
+
+Goal: `LLMClient` protocol with Anthropic implementation and scripted `FakeLLM`; agent loop with iteration cap and wall-clock budget; system prompt as a file; `AnswerComposer` producing text, provenance and grounded refusals; CLI runner.
+
+Exit criteria: FakeLLM-scripted tests cover happy path, clarification, unanswerable, timeout and tool error; one live CLI run answers a lookup question with provenance.
+
+### S4 Conversation and API
+
+Goal: `ConversationStore` protocol with in-memory TTL implementation, `ConversationService`, `POST /api/chat`, session cookie, uniform error envelope, request timeout, follow-up resolution from stored context.
+
+Exit criteria: end-to-end tests with fakes cover a multi-turn follow-up, expired session, malformed input and internal error shapes.
+
+### S5 Guardrails
+
+Goal: deterministic pre-checks, intent classifier with structured output, output numeric grounding check, refusal and clarification templates.
+
+Exit criteria: every `refuse` item in `evals/questions.yaml` is refused without a data call; `clarify` items produce a clarification; grounding check rejects an answer containing a number absent from tool results.
+
+### S6 Web UI and demo auth
+
+Goal: static chat page with message list, loading state, provenance expander and error display; passphrase login exchanged for a signed cookie; auth middleware protecting the API.
+
+Exit criteria: browser smoke test against the local server completes a two-turn conversation; unauthenticated `POST /api/chat` is rejected.
+
+### S7 Deployment
+
+Goal: hardened container image, Secret Manager wiring, Cloud Run configuration (single warm instance, request timeout above the answer budget), structured JSON logging, deploy script, post-deploy smoke test, README access instructions.
+
+Exit criteria: the public URL answers a golden lookup question end to end within the response budget; logs show request id, latency, tool calls and token usage.
+
+### S8 Evaluation and hardening
+
+Goal: run the full golden set against the deployed stack, record results under `evals/reports/`, fix the highest-impact failures, measure latency distribution and cost, list unresolved edge cases for the reflection.
+
+Exit criteria: report committed; all `refuse` and `unanswerable` items pass; pass rate for `answer` and `clarify` items recorded honestly with per-item notes.
+
+### S9 Documentation and reflection
+
+Goal: final README, `docs/reflection.md`, `docs/testing-strategy.md`, `docs/EXTENDING.md`; ARCHITECTURE, USER-GUIDE and CHANGELOG synchronized.
+
+Exit criteria: a reader with no context can run the project locally, access the demo and understand every architectural decision from the README and linked documents.
+
+## Cut policy
+
+If the remaining time is insufficient, cut in this order and record each cut in [decision_log.md](decision_log.md) and in the reflection:
+
+1. S8 depth (run the golden set once, fix only blockers).
+2. Provenance expander polish in the UI (fall back to a raw JSON block).
+3. `get_trend` tool (time series answers).
+4. `compare` tool (the model can call `get_value` twice).
+5. Output numeric grounding check (keep the tool-only data access; document the gap).
+
+Never cut: S0 to S4, the pre-checks and intent classifier of S5, S7, S9.
+
+## Optional extensions (only after S9)
+
+- Constrained free-SQL tool with an allow-list validator, for questions the typed tools cannot express.
+- Persistent `ConversationStore` (Firestore or Redis).
+- Streaming responses.
+- Result caching for repeated catalog lookups.
