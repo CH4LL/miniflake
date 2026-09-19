@@ -28,6 +28,7 @@ def test_get_trend_state_success() -> None:
     assert len(result.data.points) >= 1
     assert result.data.aggregation_method == "sum"
     assert result.data.measurement_period_note
+    assert result.data.geography_name == "Texas"
 
 
 def test_get_trend_filtered_range_unavailable() -> None:

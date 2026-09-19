@@ -162,7 +162,10 @@ def test_follow_up_reuses_prior_variable_in_system_prompt() -> None:
 
     first = client.post("/api/chat", json={"message": "What is the population of Texas?"})
     assert first.status_code == 200
-    assert first.json()["outcome"] == "answer"
+    first_body = first.json()
+    assert first_body["outcome"] == "answer"
+    assert first_body["usage"]["input_tokens"] >= 0
+    assert first_body["usage"]["output_tokens"] >= 0
 
     second = client.post("/api/chat", json={"message": "and in Florida?"})
     assert second.status_code == 200

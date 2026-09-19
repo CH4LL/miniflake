@@ -64,35 +64,7 @@ def _load_eval_items(expected: str) -> list[dict[str, Any]]:
     ]
 
 
-def _classifier_response_for_item(item: dict[str, Any]) -> LLMResponse:
-    category = item["category"]
-    if category in {"off_topic", "meta"}:
-        intent = "off_topic"
-        missing = "none"
-    elif category == "harmful":
-        intent = "harmful"
-        missing = "none"
-    elif (
-        category in {"ambiguous_geography", "conflicting"}
-        and "geograph" in item["question"].lower()
-    ):
-        intent = "needs_clarification"
-        missing = "geography"
-    elif category == "ambiguous_geography":
-        intent = "needs_clarification"
-        missing = "geography"
-    elif category == "ambiguous_variable":
-        intent = "needs_clarification"
-        missing = "measure"
-    elif category == "conflicting" and "2018" in item["question"]:
-        intent = "needs_clarification"
-        missing = "vintage"
-    elif category == "conflicting":
-        intent = "needs_clarification"
-        missing = "generic"
-    else:
-        intent = "needs_clarification"
-        missing = "generic"
+def _classifier_response(intent: str, missing: str = "none") -> LLMResponse:
     return LLMResponse(
         content=[
             ToolUseBlock(
@@ -100,7 +72,7 @@ def _classifier_response_for_item(item: dict[str, Any]) -> LLMResponse:
                 name="classify_intent",
                 input={
                     "intent": intent,
-                    "reason": "eval fixture",
+                    "reason": "test fixture",
                     "confidence": 0.95,
                     "missing": missing,
                 },
@@ -109,6 +81,12 @@ def _classifier_response_for_item(item: dict[str, Any]) -> LLMResponse:
         stop_reason="tool_use",
         usage=Usage(),
     )
+
+
+def _refuse_classifier_response(item: dict[str, Any]) -> LLMResponse:
+    if item["category"] == "harmful":
+        return _classifier_response("harmful")
+    return _classifier_response("off_topic")
 
 
 def _build_container(
@@ -142,7 +120,7 @@ def _client(container: AppContainer) -> TestClient:
 def test_refuse_eval_items_block_data_access() -> None:
     refuse_items = _load_eval_items("refuse")
     for item in refuse_items:
-        classifier_llm = FakeLLM([_classifier_response_for_item(item)])
+        classifier_llm = FakeLLM([_refuse_classifier_response(item)])
         agent_llm = FakeLLM(
             [
                 LLMResponse(
@@ -176,26 +154,44 @@ def test_injection_refuse_does_not_call_classifier() -> None:
         assert classifier_llm.calls == []
 
 
-def test_clarify_eval_items_skip_agent_loop() -> None:
-    clarify_items = _load_eval_items("clarify")
-    for item in clarify_items:
-        classifier_llm = FakeLLM([_classifier_response_for_item(item)])
-        agent_llm = FakeLLM(
-            [
-                LLMResponse(
-                    content=[TextBlock(text="should not run")],
-                    stop_reason="end_turn",
-                    usage=Usage(),
-                )
-            ]
-        )
-        repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
-        client = _client(_build_container(classifier_llm, agent_llm, repository))
-        response = client.post("/api/chat", json={"message": item["question"]})
-        assert response.status_code == 200
-        body = response.json()
-        assert body["outcome"] == "clarify"
-        assert agent_llm.calls == []
+def test_geography_clarify_skips_agent_loop() -> None:
+    classifier_llm = FakeLLM([_classifier_response("needs_clarification", missing="geography")])
+    agent_llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[TextBlock(text="should not run")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            )
+        ]
+    )
+    repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
+    client = _client(_build_container(classifier_llm, agent_llm, repository))
+    response = client.post("/api/chat", json={"message": "Compare the population."})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "clarify"
+    assert "geography" in body["text"].lower()
+    assert agent_llm.calls == []
+
+
+def test_vintage_clarify_does_not_short_circuit() -> None:
+    classifier_llm = FakeLLM([_classifier_response("needs_clarification", missing="vintage")])
+    agent_llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[TextBlock(text="Oregon population is available from ACS.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            )
+        ]
+    )
+    repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
+    client = _client(_build_container(classifier_llm, agent_llm, repository))
+    response = client.post("/api/chat", json={"message": "What is the population of Oregon?"})
+    assert response.status_code == 200
+    assert response.json()["outcome"] == "answer"
+    assert len(agent_llm.calls) == 1
 
 
 def test_classifier_timeout_fails_open_to_agent_loop() -> None:

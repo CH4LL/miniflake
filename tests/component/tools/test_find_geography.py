@@ -40,6 +40,13 @@ def test_find_orange_county_ambiguous() -> None:
     assert "state" in result.hint.lower()
 
 
+def test_find_city_of_denver_not_found() -> None:
+    repository = FakeCensusRepository()
+    result = _tool().run(repository, FindGeographyInput(query="city of Denver"))
+    assert isinstance(result, NotFound)
+    assert result.what == "city of Denver"
+
+
 def test_find_atlantis_not_found() -> None:
     repository = FakeCensusRepository()
     result = _tool().run(repository, FindGeographyInput(query="Atlantis"))

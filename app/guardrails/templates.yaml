@@ -21,15 +21,15 @@ needs_clarification_geography: >
   Which geography did you mean? Please specify the state, county, or block group.
 
 needs_clarification_measure: >
-  Which measure did you mean? For example, total population, median household income,
-  or a specific educational attainment level.
+  Which measure did you mean? If you are asking about income, say household, family,
+  or per capita; if about education, say which attainment threshold.
 
 needs_clarification_vintage: >
-  Which ACS vintage did you mean? I can use the vintages available in this dataset.
+  I will use the latest ACS 5-year vintage unless you name a year.
 
 needs_clarification_generic: >
-  I need a bit more detail before I can look that up. Please specify the geography,
-  measure, or vintage.
+  I need a bit more detail before I can look that up. Please specify the geography
+  or the measure.
 
 ungrounded_answer: >
   I could not verify every figure in that answer against the data returned from the

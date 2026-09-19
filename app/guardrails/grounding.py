@@ -14,6 +14,7 @@ SCALE_WORDS = {
     "billion": 1_000_000_000,
 }
 
+ACS_FIELD_ID_PATTERN = re.compile(r"\bB\d{5}(?:[eE]\d+)?\b", re.IGNORECASE)
 NUMBER_PATTERN = re.compile(
     r"""
     (?P<number>
@@ -59,9 +60,15 @@ def collect_allowed_values(payloads: list[dict[str, Any]]) -> set[float]:
     return values
 
 
+DEFAULT_YEAR_MIN = 1900
+DEFAULT_YEAR_MAX = 2100
+DEFAULT_EXEMPT_MAX_INTEGER = 25
+
+
 def extract_numbers(text: str) -> list[NumericToken]:
+    masked = ACS_FIELD_ID_PATTERN.sub(" ", text)
     tokens: list[NumericToken] = []
-    for match in NUMBER_PATTERN.finditer(text):
+    for match in NUMBER_PATTERN.finditer(masked):
         raw_number = match.group("number")
         scale = match.group("scale")
         percent = match.group("percent")
@@ -76,6 +83,18 @@ def extract_numbers(text: str) -> list[NumericToken]:
             )
         )
     return tokens
+
+
+def has_non_exempt_numbers(text: str, settings: Settings | None = None) -> bool:
+    year_min = settings.guardrail_grounding_year_min if settings else DEFAULT_YEAR_MIN
+    year_max = settings.guardrail_grounding_year_max if settings else DEFAULT_YEAR_MAX
+    exempt_max = (
+        settings.guardrail_grounding_exempt_max_integer if settings else DEFAULT_EXEMPT_MAX_INTEGER
+    )
+    return any(
+        not _token_is_exempt(token, year_min, year_max, exempt_max)
+        for token in extract_numbers(text)
+    )
 
 
 def check_grounding(
@@ -114,18 +133,27 @@ def _derived_values(allowed: set[float]) -> set[float]:
 
 
 def _is_exempt(token: NumericToken, settings: Settings) -> bool:
+    return _token_is_exempt(
+        token,
+        settings.guardrail_grounding_year_min,
+        settings.guardrail_grounding_year_max,
+        settings.guardrail_grounding_exempt_max_integer,
+    )
+
+
+def _token_is_exempt(
+    token: NumericToken,
+    year_min: int,
+    year_max: int,
+    exempt_max: int,
+) -> bool:
     if token.is_percent:
         return False
     if token.value == int(token.value):
         integer = int(token.value)
-        if (
-            settings.guardrail_grounding_year_min
-            <= integer
-            <= settings.guardrail_grounding_year_max
-        ):
-            if len(str(integer)) == 4:
-                return True
-        if 0 < integer <= settings.guardrail_grounding_exempt_max_integer:
+        if year_min <= integer <= year_max and len(str(integer)) == 4:
+            return True
+        if 0 < integer <= exempt_max:
             return True
     return False
 

@@ -168,8 +168,9 @@ def test_capability_answer_without_tools_is_answer_with_empty_provenance() -> No
                 content=[
                     TextBlock(
                         text=(
-                            "I answer US census questions using SafeGraph ACS block-group data "
-                            "with count rollups to state and county levels."
+                            "I answer US census questions using SafeGraph ACS 5-year "
+                            "block-group data for 2019 and 2020, with count rollups "
+                            "to state and county levels."
                         )
                     )
                 ],

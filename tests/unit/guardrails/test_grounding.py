@@ -112,3 +112,32 @@ def test_grounding_fails_invented_number() -> None:
     )
     assert verdict.grounded is False
     assert verdict.offending
+
+
+def test_grounding_ignores_acs_field_id_fragments() -> None:
+    payloads = [{"value": 3080156.0, "field_id": "B01003e1"}]
+    verdict = check_grounding(
+        "Nevada total population (B01003e1) was 3,080,156.",
+        payloads,
+        _settings(),
+    )
+    assert verdict.grounded is True
+
+
+def test_extract_numbers_skips_acs_field_ids() -> None:
+    tokens = extract_numbers("Variable B01003e1 and series B19013.")
+    values = {token.value for token in tokens}
+    assert 1003.0 not in values
+    assert 19013.0 not in values
+    assert 1.0 not in values
+
+
+def test_grounding_fails_prior_turn_population() -> None:
+    payloads = [{"value": 3080156.0, "geo_id": "32"}]
+    verdict = check_grounding(
+        "Nevada was 3,080,156 compared with Texas at 28,260,856.",
+        payloads,
+        _settings(),
+    )
+    assert verdict.grounded is False
+    assert any("28,260,856" in token for token in verdict.offending)

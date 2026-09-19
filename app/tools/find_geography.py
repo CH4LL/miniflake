@@ -38,6 +38,17 @@ class FindGeographyTool:
 
     def run(self, repository: CensusRepository, input: BaseModel) -> ToolResult:
         payload = FindGeographyInput.model_validate(input)
+        lowered_query = payload.query.lower()
+        if any(
+            marker in lowered_query
+            for marker in ("city of", "metro area", "metropolitan area", "cbsa", "census tract")
+        ):
+            return NotFound(
+                what=payload.query,
+                suggestions=[
+                    "Use state, county, or block-group geographies supported by this dataset."
+                ],
+            )
         result = repository.search_geographies(
             payload.query,
             payload.level,

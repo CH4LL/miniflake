@@ -1,0 +1,9 @@
+latency_budget_seconds: 60.0
+http_timeout_seconds: 70.0
+retry_count: 1
+default_tolerance_pct: 1.0
+default_target_url: https://miniflake-eowbm7u4ua-uk.a.run.app
+agent_input_price_per_million: 3.0
+agent_output_price_per_million: 15.0
+classifier_input_price_per_million: 0.8
+classifier_output_price_per_million: 4.0

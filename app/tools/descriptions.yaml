@@ -1,7 +1,7 @@
 find_geography: >
   Search for a US geography by name. Returns a single match, multiple candidates
   when the name is ambiguous across states or levels, or not-found with suggestions.
-  Use within_state to narrow county or place searches to a specific state.
+  Use within_state to narrow county searches to a specific state.
 
 find_variable: >
   Search the curated ACS variable catalog by name or field id. Returns ranked
@@ -9,9 +9,10 @@ find_variable: >
   series, or not-found with topic suggestions.
 
 get_value: >
-  Look up a single ACS estimate for a field at a geography and vintage. Count
-  fields roll up from block groups at state, county and nation levels. Median and
-  rate fields are available only at block-group level.
+  Look up a single ACS estimate for a field at a geography. Vintage is optional
+  and defaults to the latest ACS 5-year release. Count fields roll up from block
+  groups at state, county and nation levels. Median and rate fields are available
+  only at block-group level.
 
 rank_geographies: >
   Rank geographies at a given level by a count field value. Median and rate

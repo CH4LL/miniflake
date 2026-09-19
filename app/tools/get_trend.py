@@ -25,6 +25,7 @@ class TrendPoint(BaseModel):
 class GetTrendSuccess(BaseModel):
     field_id: str
     geo_id: str
+    geography_name: str
     aggregation_method: str
     measurement_period_note: str
     points: list[TrendPoint]
@@ -67,10 +68,14 @@ class GetTrendTool:
         if series.rows and not filtered:
             requested = _requested_range(payload.start_year, payload.end_year)
             return PeriodUnavailable(requested=requested, available=available)
+        geography_result = repository.get_geography(payload.geo_id)
+        provenance.append(geography_result.provenance)
+        geography_name = geography_result.rows[0].name if geography_result.rows else payload.geo_id
         return Success(
             data=GetTrendSuccess(
                 field_id=variable.field_id,
                 geo_id=payload.geo_id,
+                geography_name=geography_name,
                 aggregation_method=series.provenance.aggregation_method.value,
                 measurement_period_note=measurement_period_note(),
                 points=[TrendPoint(vintage=point.vintage, value=point.value) for point in filtered],

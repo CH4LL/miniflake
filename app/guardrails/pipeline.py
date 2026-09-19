@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,11 @@ from app.guardrails.prechecks import load_patterns, match_patterns
 from app.guardrails.types import GuardrailDecision, IntentDecision
 
 TEMPLATES_PATH = Path(__file__).resolve().parent / "templates.yaml"
+POPULATION_MEASURE_PATTERN = re.compile(
+    r"\b(population|populous|how many people)\b",
+    re.IGNORECASE,
+)
+logger = logging.getLogger(__name__)
 
 
 def load_templates(path: Path | None = None) -> dict[str, str]:
@@ -48,7 +55,7 @@ class GuardrailPipeline:
             self._settings.guardrail_classifier_context_turns,
         )
         decision = self._classifier.classify(message, context_excerpt)
-        return self._decision_from_intent(decision)
+        return self._decision_from_intent(decision, message)
 
     def check_answer(
         self,
@@ -58,18 +65,25 @@ class GuardrailPipeline:
         verdict = check_grounding(text, payloads, self._settings)
         if verdict.grounded:
             return None
+        logger.info("Grounding check failed; offending tokens: %s", verdict.offending)
         return GuardrailDecision(
             outcome="unanswerable",
             text=self._templates["ungrounded_answer"],
         )
 
-    def _decision_from_intent(self, decision: IntentDecision) -> GuardrailDecision | None:
+    def _decision_from_intent(
+        self, decision: IntentDecision, message: str
+    ) -> GuardrailDecision | None:
         if decision.intent == "off_topic":
             return GuardrailDecision(outcome="refuse", text=self._templates["off_topic"])
         if decision.intent == "harmful":
             return GuardrailDecision(outcome="refuse", text=self._templates["harmful"])
         if decision.intent == "needs_clarification":
             missing = decision.missing or "generic"
+            if missing == "vintage":
+                return None
+            if missing == "measure" and POPULATION_MEASURE_PATTERN.search(message):
+                return None
             template_key = f"needs_clarification_{missing}"
             return GuardrailDecision(
                 outcome="clarify",

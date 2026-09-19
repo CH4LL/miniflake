@@ -34,3 +34,23 @@ def test_system_prompt_lists_tools_and_geography_levels() -> None:
         assert schema["description"] in prompt
     for level in GeoLevel:
         assert level.value in prompt
+
+
+def test_system_prompt_defaults_vintage_population_and_compare() -> None:
+    registry = default_registry(_settings())
+    prompt = build_system_prompt(registry, _settings(), context_facts=[])
+    lowered = prompt.lower()
+    assert "latest" in lowered
+    assert "total population" in lowered
+    assert "b01003" in lowered
+    assert "`compare`" in lowered or "compare" in lowered
+    assert "place searches" not in lowered
+    assert "rolled up via SUM to Nation, State, and County" in prompt
+
+
+def test_tool_descriptions_drop_place_and_default_vintage() -> None:
+    registry = default_registry(_settings())
+    by_name = {schema["name"]: schema["description"].lower() for schema in registry.schemas()}
+    assert "place" not in by_name["find_geography"]
+    assert "optional" in by_name["get_value"]
+    assert "latest" in by_name["get_value"]

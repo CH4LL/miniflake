@@ -55,7 +55,7 @@ The agent answers US census questions backed by SafeGraph ACS 5-year block-group
 
 **Will answer:** US population and demographic questions backed by SafeGraph ACS block-group data — lookups, comparisons, rankings, and trends within supported geography levels and vintages.
 
-**Will ask for clarification** when a question is plausible but missing a geography, measure, or vintage (for example, "How many people live in Washington?" or "What is the income in Ohio?").
+**Will ask for clarification** when a question is plausible but missing a geography or an underspecified measure (for example, "How many people live in Washington?" or "What is the income in Ohio?"). Omitted year uses the latest ACS 5-year vintage; "population" means total population.
 
 **Will refuse** without querying data:
 

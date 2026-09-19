@@ -435,3 +435,32 @@ What: On 2026-09-19, `scripts/setup_secrets.sh` and `scripts/deploy.sh` succeede
 Why: Stage-end checklist requires deployed verification and observable logs.
 Dropped: n/a
 Refs: specs/S7-deployment.md, README.md
+
+## 2026-09-19  Omitted vintage is not a clarification
+Stage: S8 | Type: decision
+What: Classifier prompt treats omitted year as latest ACS 5-year vintage; `GuardrailPipeline` ignores `missing=vintage`; population phrasing does not short-circuit `missing=measure`.
+Why: Tools already default vintage to latest; golden lookups (L01) and user questions like "population of Oregon" are complete. Asking which vintage produced false-pass clarifies (AG03) and blocked answerable lookups.
+Dropped: Requiring the user to name 2019 or 2020; relying on Haiku prompt text without a pipeline backstop.
+Refs: app/guardrails/classifier.py, app/guardrails/pipeline.py, evals AG03, L01
+
+## 2026-09-19  CF01 expected unanswerable; F02 must re-fetch
+Stage: S8 | Type: decision
+What: CF01 (2018 and 2022 as one number) is `unanswerable` listing 2019/2020. F02 notes require `get_value` this turn for the US (and Texas if comparing); prior-turn figures are not allowed. AV01 notes no longer treat stating median household income as a pass.
+Why: Both CF01 years are outside the share; grounding only accepts this-turn tool values; state median income is unsupported.
+Dropped: Asking which vintage for CF01; allowing F02 to restate the prior Texas figure without a new lookup.
+Refs: evals/questions.yaml CF01, F02, AV01
+
+## 2026-09-19  No live eval run in this hardening pass
+Stage: S8 | Type: deviation
+What: Prompt, grounding, composer, scoring, and golden-set definition changes covered by unit/component/e2e fakes only. `evals/run_evals.py` was not run.
+Why: Full golden runs were slow and costly; the previous report already showed the failure modes these changes target. S8 remains in-progress until a committed eval report exists.
+Dropped: Re-running the 51-item live set before merging the prompt fixes.
+Refs: specs/S8-evaluation-hardening.md
+
+## 2026-09-19  B17001 aggregation_kind left as rate
+Stage: S8 | Type: decision
+What: Did not retag catalog series B17001 from `rate` to `count` in this pass.
+Why: L07 (poverty percentage at state) may be answerable from ACS counts, but changing aggregation_kind needs a catalog-spec unit test that was not in this hardening slice.
+Dropped: Treating L07 as `answer` without proving the field is a count in the share.
+Refs: fixtures/variable_catalog_spec.yaml, evals L07
+

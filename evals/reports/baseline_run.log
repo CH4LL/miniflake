@@ -1,0 +1,4 @@
+Strict gate failed for: L02, L05, L06, L07, R02, R03, AG01, MV01, MV02, MV03, UP01, UP02, UL02
+Wrote D:\Tech Company 133\miniflake\evals\reports\20260919T132334Z.md
+Wrote D:\Tech Company 133\miniflake\evals\reports\20260919T132334Z.json
+Passed 27/51 (p50=5067ms p95=31853ms)

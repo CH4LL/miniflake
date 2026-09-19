@@ -4,6 +4,12 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S8: Prompt and guardrail hardening
+- Intent classifier no longer treats omitted ACS vintage as missing; the pipeline ignores `missing=vintage` and named population questions do not clarify measure.
+- System prompt defaults unspecified year to the latest 5-year vintage, maps population to B01003, and steers multi-geography questions to `compare`.
+- Output grounding masks ACS field ids; no-tool capability answers may mention years and "5-year".
+- Golden set schema adds `expected_missing` for clarify items; CF01 expects unanswerable.
+
 ### Fixes
 - Health endpoint reads settings from the injected application container so container-based e2e tests run in CI without Snowflake environment variables.
 

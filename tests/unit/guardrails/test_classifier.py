@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.config import Settings
-from app.guardrails.classifier import IntentClassifier, render_context
+from app.guardrails.classifier import CLASSIFY_SYSTEM_PROMPT, IntentClassifier, render_context
 from app.llm.errors import LLMError
 from app.llm.fake import FakeLLM
 from app.llm.types import LLMResponse, Message, TextBlock, ToolUseBlock, Usage
@@ -102,6 +102,33 @@ def test_classifier_fail_open_on_malformed_output() -> None:
     decision = classifier.classify("Population of Texas?", context_excerpt="")
     assert decision.intent == "in_scope"
     assert decision.failed_open is True
+
+
+def test_classifier_prompt_omitted_vintage_is_in_scope() -> None:
+    lowered = CLASSIFY_SYSTEM_PROMPT.lower()
+    assert "required geography, measure, or vintage" not in lowered
+    assert "omitted vintage" in lowered
+    assert "latest" in lowered
+    assert "5-year" in lowered
+
+
+def test_classifier_prompt_population_is_a_complete_measure() -> None:
+    lowered = CLASSIFY_SYSTEM_PROMPT.lower()
+    assert "total population" in lowered
+    assert "complete measure" in lowered
+
+
+def test_classifier_prompt_meta_capability_is_in_scope() -> None:
+    lowered = CLASSIFY_SYSTEM_PROMPT.lower()
+    assert "what can you answer" in lowered
+    assert "where does the data come from" in lowered
+    assert "not off_topic" in lowered
+
+
+def test_classifier_prompt_named_out_of_range_years_stay_in_scope() -> None:
+    lowered = CLASSIFY_SYSTEM_PROMPT.lower()
+    assert "named a year" in lowered or "named year" in lowered
+    assert "explain coverage" in lowered
 
 
 def test_render_context_is_plain_text_only() -> None:

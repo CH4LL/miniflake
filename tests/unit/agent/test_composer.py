@@ -60,6 +60,54 @@ def test_end_turn_with_only_ambiguous_is_clarify() -> None:
     assert answer.outcome == "clarify"
 
 
+def test_catalog_success_with_unsupported_get_value_is_unanswerable() -> None:
+    answer = _composer().compose(
+        stop_reason="end_turn",
+        text_blocks=["Median income is not available at county level."],
+        tool_traces=[
+            ToolCallTrace(
+                name="find_geography",
+                input={"query": "Cook County"},
+                result_kind="success",
+                duration_ms=1.0,
+            ),
+            ToolCallTrace(
+                name="find_variable",
+                input={"query": "median household income"},
+                result_kind="success",
+                duration_ms=1.0,
+            ),
+            ToolCallTrace(
+                name="get_value",
+                input={"field_id": "B19013e1", "geo_id": "17031"},
+                result_kind="unsupported_request",
+                duration_ms=1.0,
+            ),
+        ],
+        provenance=[],
+        usage=Usage(),
+    )
+    assert answer.outcome == "unanswerable"
+
+
+def test_catalog_only_success_without_data_fetch_is_unanswerable() -> None:
+    answer = _composer().compose(
+        stop_reason="end_turn",
+        text_blocks=["Median income cannot be ranked at county level."],
+        tool_traces=[
+            ToolCallTrace(
+                name="find_variable",
+                input={"query": "median household income"},
+                result_kind="success",
+                duration_ms=1.0,
+            )
+        ],
+        provenance=[],
+        usage=Usage(),
+    )
+    assert answer.outcome == "unanswerable"
+
+
 def test_end_turn_with_only_unavailable_is_unanswerable() -> None:
     answer = _composer().compose(
         stop_reason="end_turn",
@@ -72,6 +120,17 @@ def test_end_turn_with_only_unavailable_is_unanswerable() -> None:
                 duration_ms=1.0,
             )
         ],
+        provenance=[],
+        usage=Usage(),
+    )
+    assert answer.outcome == "unanswerable"
+
+
+def test_end_turn_without_tools_and_limitation_text_is_unanswerable() -> None:
+    answer = _composer().compose(
+        stop_reason="end_turn",
+        text_blocks=["CBSA geography isn't supported in this dataset."],
+        tool_traces=[],
         provenance=[],
         usage=Usage(),
     )
@@ -100,6 +159,29 @@ def test_end_turn_without_tools_and_with_numbers_uses_grounding_template() -> No
     )
     assert answer.outcome == "unanswerable"
     assert answer.text == "grounding template"
+
+
+def test_end_turn_without_tools_allows_years_and_five_year_label() -> None:
+    answer = _composer().compose(
+        stop_reason="end_turn",
+        text_blocks=["Values are ACS 5-year estimates for 2019 and 2020."],
+        tool_traces=[],
+        provenance=[],
+        usage=Usage(),
+    )
+    assert answer.outcome == "answer"
+    assert "2019" in answer.text
+
+
+def test_end_turn_without_tools_limitation_text_stays_unanswerable() -> None:
+    answer = _composer().compose(
+        stop_reason="end_turn",
+        text_blocks=["Median income at county level is not supported in this dataset."],
+        tool_traces=[],
+        provenance=[],
+        usage=Usage(),
+    )
+    assert answer.outcome == "unanswerable"
 
 
 def test_timeout_iteration_and_llm_error_use_error_templates() -> None:

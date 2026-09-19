@@ -19,12 +19,34 @@ Return classify_intent with:
 - intent: in_scope, needs_clarification, off_topic, or harmful
 - reason: brief internal rationale
 - confidence: 0 to 1
-- missing: geography, measure, vintage, generic, or null
+- missing: geography, measure, vintage, generic, or none
 
-in_scope: US population or demographic questions answerable from ACS block-group data.
-needs_clarification: plausible census question missing geography, measure, or vintage.
-off_topic: unrelated requests (poems, coding help, non-US geography, general knowledge).
+in_scope: US population or demographic questions, including:
+- named population questions (total population is a complete measure; do not ask which measure)
+- omitted vintage: default is the latest ACS 5-year release; do not flag omitted vintage
+- named years, including out-of-range years — the agent will explain coverage
+- measures not in ACS (IQ, pet ownership, crime) — the agent will search the catalog
+- unsupported geographies (city, metro/CBSA, tract) — the agent will explain limits
+- projection requests — the agent will explain coverage
+- ambiguous place names without place-level data — the agent will explain limits
+- follow-ups that rely on prior conversation context
+- capability questions such as "what can you answer?" and "where does the data come from"
+  (these are not off_topic)
+
+needs_clarification: in-scope census question that omits geography or a genuinely
+underspecified measure, or names an ambiguous supported geography. Examples: no place
+named; "income" without household vs family vs per capita; "how educated";
+"which state is the best?"; "Washington" (state vs DC vs county); "Orange County"
+(multiple states). Do NOT use for omitted vintage, named population questions,
+named years, projections, metro/CBSA/city/tract/street geographies, or place names
+this dataset cannot resolve.
+
+off_topic: unrelated requests (poems, coding help, non-US geography).
+Do not mark census-topic questions as off_topic just because the measure is absent (IQ, pets)
+or because the topic is crime rather than demographics. Capability questions are in_scope.
+
 harmful: personal data requests, discriminatory framing, or dangerous instructions.
+Crime-rate questions are in_scope, not harmful, when the user asks for statistics.
 """
 
 

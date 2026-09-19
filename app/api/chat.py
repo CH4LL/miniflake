@@ -30,12 +30,18 @@ class ToolCallResponse(BaseModel):
     data: dict[str, Any] | None = None
 
 
+class UsageResponse(BaseModel):
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+
 class ChatResponse(BaseModel):
     conversation_id: str
     text: str
     outcome: Literal["answer", "clarify", "unanswerable", "refuse", "error"]
     provenance: list[Provenance] = Field(default_factory=list)
     tool_calls: list[ToolCallResponse] = Field(default_factory=list)
+    usage: UsageResponse = Field(default_factory=UsageResponse)
     latency_ms: float
 
 
@@ -72,6 +78,10 @@ def _chat_response(turn: Any) -> ChatResponse:
             )
             for trace in answer.tool_calls
         ],
+        usage=UsageResponse(
+            input_tokens=answer.usage.input_tokens,
+            output_tokens=answer.usage.output_tokens,
+        ),
         latency_ms=turn.latency_ms,
     )
 
@@ -148,6 +158,7 @@ async def chat(
             outcome="error",
             provenance=[],
             tool_calls=[],
+            usage=UsageResponse(),
             latency_ms=settings.api_request_timeout_seconds * 1000,
         )
     _set_session_cookie(response, container, turn.conversation_id)
