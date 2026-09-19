@@ -4,6 +4,9 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### Tooling
+- Pre-commit hooks for Ruff format and lint; agent workflow documents explicit local checks matching CI.
+
 ### S1: Data access layer
 - `CensusRepository` protocol with domain models, provenance, and counts-only rollup policy.
 - `SnowflakeCensusRepository` with read-only SQL guard, row caps, retry, and parametrized templates under `app/data/sql/`.

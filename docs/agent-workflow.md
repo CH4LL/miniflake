@@ -2,6 +2,15 @@
 
 How to pick up work in this repository without re-reading the codebase. Applies to humans and coding agents alike.
 
+## One-time setup
+
+After cloning or syncing dependencies, install git hooks:
+
+    uv sync
+    uv run pre-commit install
+
+Verify hooks are active: `uv run pre-commit run --all-files` should pass on a clean tree.
+
 ## Start here
 
 1. Read [roadmap.md](roadmap.md). Find the first stage whose status is not `done` or `cut`. That is the current stage.
@@ -24,7 +33,8 @@ How to pick up work in this repository without re-reading the codebase. Applies 
 Run through every item before setting the stage to `done`:
 
 - [ ] Every acceptance criterion in the spec is covered by a passing test or, for manual criteria, verified and noted in the decision log.
-- [ ] `ruff` and `pytest` pass locally; CI is green.
+- [ ] Ruff and pytest pass locally (same as CI): `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest`. If pre-commit hooks are installed, they run automatically on commit.
+- [ ] Do not use `git commit --no-verify` to skip pre-commit hooks.
 - [ ] Live tests relevant to the stage pass when run with credentials (record the date in the decision log).
 - [ ] [CHANGELOG.md](../CHANGELOG.md) has an entry for the stage.
 - [ ] [ARCHITECTURE.md](../ARCHITECTURE.md) reflects the components that now exist.
