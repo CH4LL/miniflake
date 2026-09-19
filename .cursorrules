@@ -1,0 +1,15 @@
+<global rules>
+  Use comments sparingly. Inline comments should only be used when the code itself cannot express the reason behind a decision
+  Always use Test Driven Development. First create comprehensive tests for the feature, then write the feature itself, ensuring all tests pass
+  When a feature integrates systems, apply TDD with integration tests
+  When a feature completes end-to-end usage of the application, apply TDD with E2E tests
+  Implement error handling for possible runtime failures that tests cannot catch
+  Adjustable data should be kept decoupled from the application code
+  Docs should never quote adjustable data values.
+  Docs that reflect current state of the application should never cite changes done, reasons for changes, fixes
+  Decisions made and dead-ends encountered should be logged in ./docs/decision_log.md
+  In cases where alternative architectures were considered, ADR should be made in ./docs elaborating on the decision
+  Update CHANGELOG.MD after every feature development with a concise summary of what changed
+  ARCHITECTURE.md must contain a concise architectural overview of the existing elements. More specific feature descriptions may be created in ./docs as appropriate
+  USER-GUIDE.md must contain a concise, human-friendly instruction on how to use existing features
+</global rules>
