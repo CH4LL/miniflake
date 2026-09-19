@@ -4,6 +4,9 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### Fixes
+- Health endpoint reads settings from the injected application container so container-based e2e tests run in CI without Snowflake environment variables.
+
 ### S7: Deployment
 - Multi-stage Dockerfile with digest-pinned base image, non-root user, runtime-only dependencies, and fixtures bundled for catalog loading.
 - `connect_snowflake` moved from `scripts/` to `app/data/connection.py`; container no longer imports from `scripts/`.

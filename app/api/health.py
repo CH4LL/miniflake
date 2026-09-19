@@ -1,14 +1,11 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
-
-from app.config import Settings, get_settings
+from fastapi import APIRouter, Request
 
 router = APIRouter()
 
 
 @router.get("/health")
-def health(settings: Annotated[Settings, Depends(get_settings)]) -> dict[str, str]:
+def health(request: Request) -> dict[str, str]:
+    settings = request.app.state.container.settings
     return {
         "status": "ok",
         "service": settings.app_name,
