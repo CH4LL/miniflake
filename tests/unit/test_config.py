@@ -100,7 +100,6 @@ def test_data_layer_settings_defaults(isolated_env: None, apply_env) -> None:
     assert settings.nation_geo_id == "US"
     assert settings.acs_wide_table_name(2020, "B01") == "2020_CBG_B01"
     assert (
-        settings.metadata_field_descriptions_table(2019)
-        == "2019_METADATA_CBG_FIELD_DESCRIPTIONS"
+        settings.metadata_field_descriptions_table(2019) == "2019_METADATA_CBG_FIELD_DESCRIPTIONS"
     )
     assert settings.fixtures_path() == Path("fixtures")

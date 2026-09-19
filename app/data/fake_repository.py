@@ -116,9 +116,7 @@ class FakeCensusRepository:
             ),
         )
 
-    def search_variables(
-        self, query: str, topic: str | None, limit: int
-    ) -> QueryResult[Variable]:
+    def search_variables(self, query: str, topic: str | None, limit: int) -> QueryResult[Variable]:
         rows = []
         for variable in self._variables:
             if topic and topic.lower() not in variable.topic.lower():
@@ -309,9 +307,7 @@ class FakeCensusRepository:
             raise RepositoryError(f"Unknown field id: {field_id}")
         return variable
 
-    def _direct_observation(
-        self, field_id: str, geo_id: str, vintage: int
-    ) -> Observation | None:
+    def _direct_observation(self, field_id: str, geo_id: str, vintage: int) -> Observation | None:
         for observation in self._observations:
             if (
                 observation.field_id == field_id
@@ -335,10 +331,7 @@ class FakeCensusRepository:
             if observation.field_id == field_id
             and observation.vintage == vintage
             and self._is_block_group_grain(observation.geo_id)
-            and (
-                prefix_len is None
-                or observation.geo_id.startswith(geo_id[:prefix_len])
-            )
+            and (prefix_len is None or observation.geo_id.startswith(geo_id[:prefix_len]))
         ]
         if not matching:
             return 0.0, 0

@@ -41,9 +41,7 @@ def write_geographies(
         "counties": [item.model_dump() for item in counties[:20]],
         "block_groups": [item.model_dump() for item in block_groups],
     }
-    (output_dir / "geographies.json").write_text(
-        json.dumps(payload, indent=2), encoding="utf-8"
-    )
+    (output_dir / "geographies.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def write_variables(repo: SnowflakeCensusRepository, output_dir: Path) -> list[dict[str, object]]:

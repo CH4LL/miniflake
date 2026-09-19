@@ -17,7 +17,5 @@ def matches_query(name: str, query: str) -> bool:
     name_lower = name.lower()
     query_lower = query.lower()
     return (
-        name_lower == query_lower
-        or name_lower.startswith(query_lower)
-        or query_lower in name_lower
+        name_lower == query_lower or name_lower.startswith(query_lower) or query_lower in name_lower
     )

@@ -61,9 +61,7 @@ def expand_in_list(sql: str, params: dict[str, object]) -> tuple[str, dict[str, 
                 bind_name = f"{key}_{index}"
                 bind_names.append(f"%({bind_name})s")
                 expanded_params[bind_name] = item
-            expanded_sql = expanded_sql.replace(
-                placeholder, "(" + ", ".join(bind_names) + ")"
-            )
+            expanded_sql = expanded_sql.replace(placeholder, "(" + ", ".join(bind_names) + ")")
         else:
             expanded_params[key] = value
     return expanded_sql, expanded_params

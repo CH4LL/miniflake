@@ -157,8 +157,7 @@ def inspect_share(connection, database: str) -> InspectionResult:
                     )
 
                 if _table_matches(table_name, FIELD_DESCRIPTIONS_HINTS) and (
-                    field_descriptions is None
-                    or "REDISTRICTING" not in table_name.upper()
+                    field_descriptions is None or "REDISTRICTING" not in table_name.upper()
                 ):
                     field_descriptions = _build_metadata_table(
                         cursor, database, schema_name, table_name, columns, row_count
@@ -211,11 +210,7 @@ def _build_metadata_table(
     distinct_count: int | None = None
     sample_rows: list[dict[str, str]] = []
     table_id_col = next(
-        (
-            c
-            for c in columns
-            if c.upper() in ("TABLE_ID", "SERIES_ID", "ACS_TABLE_ID", "COLUMN_ID")
-        ),
+        (c for c in columns if c.upper() in ("TABLE_ID", "SERIES_ID", "ACS_TABLE_ID", "COLUMN_ID")),
         None,
     )
     fqn = _fqn(database, schema_name, table_name)

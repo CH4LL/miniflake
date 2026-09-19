@@ -116,9 +116,7 @@ class SnowflakeCensusRepository:
         ]
         return QueryResult(rows=geographies, provenance=provenance)
 
-    def search_variables(
-        self, query: str, topic: str | None, limit: int
-    ) -> QueryResult[Variable]:
+    def search_variables(self, query: str, topic: str | None, limit: int) -> QueryResult[Variable]:
         vintage = self._settings.acs_vintages[-1]
         sql = render_sql_template(
             load_sql_template(SQL_DIR / "search_variables.sql"),
@@ -416,7 +414,6 @@ class SnowflakeCensusRepository:
                 "AND table_schema = %(schema)s "
                 f"AND table_name = '{table}' "
                 "AND column_name = %(field_id)s)"
-                
             )
         return " UNION ALL ".join(parts)
 
