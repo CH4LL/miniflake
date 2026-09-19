@@ -113,9 +113,15 @@ class AgentLoop:
             working_messages.append(assistant_message)
             transcript.append(assistant_message)
             tool_result_blocks: list[ToolResultBlock] = []
+            timed_out = False
             for block in response.content:
                 if not isinstance(block, ToolUseBlock):
                     continue
+                remaining = deadline - self._clock()
+                if remaining < self._settings.agent_min_seconds_per_llm_call:
+                    stop_reason = "timeout"
+                    timed_out = True
+                    break
                 started = self._clock()
                 result = self._registry.dispatch(block.name, block.input, self._repository)
                 duration_ms = (self._clock() - started) * 1000
@@ -140,9 +146,12 @@ class AgentLoop:
                         is_error=isinstance(result, ToolError),
                     )
                 )
-            tool_message = Message(role="tool", content=tool_result_blocks)
-            working_messages.append(tool_message)
-            transcript.append(tool_message)
+            if tool_result_blocks:
+                tool_message = Message(role="tool", content=tool_result_blocks)
+                working_messages.append(tool_message)
+                transcript.append(tool_message)
+            if timed_out:
+                break
 
         if stop_reason is None:
             stop_reason = "iteration_cap"

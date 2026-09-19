@@ -37,4 +37,5 @@ def build_system_prompt(
         topics=topics,
         vintages=settings.acs_vintages,
         context_facts=context_facts,
+        response_budget_seconds=int(settings.response_budget_seconds),
     )

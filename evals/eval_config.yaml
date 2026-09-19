@@ -1,5 +1,5 @@
 latency_budget_seconds: 60.0
-http_timeout_seconds: 70.0
+http_timeout_seconds: 120.0
 retry_count: 1
 default_tolerance_pct: 1.0
 default_target_url: https://miniflake-eowbm7u4ua-uk.a.run.app

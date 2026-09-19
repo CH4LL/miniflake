@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from app.config import Settings
 from app.guardrails.pipeline import load_templates
 from evals.config import EvalSettings
 from evals.loader import EvalItem, ProvenanceExpectation, ValueCheck
@@ -312,3 +313,15 @@ def test_report_rendering_from_fixed_result_set() -> None:
     assert "OT01" in markdown
     assert "FAIL" in markdown
     assert '"OT01"' in payload
+
+
+def test_eval_latency_budget_default_matches_product_response_budget() -> None:
+    eval_default = EvalSettings.model_fields["latency_budget_seconds"].default
+    product_default = Settings.model_fields["response_budget_seconds"].default
+    assert eval_default == product_default
+
+
+def test_eval_http_timeout_exceeds_hard_agent_budget() -> None:
+    eval_http = EvalSettings.model_fields["http_timeout_seconds"].default
+    agent_budget = Settings.model_fields["agent_budget_seconds"].default
+    assert eval_http > agent_budget

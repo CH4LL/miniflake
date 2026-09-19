@@ -198,6 +198,48 @@ def test_past_deadline_skips_llm_and_returns_timeout_error() -> None:
     assert llm.calls == []
 
 
+def test_low_remaining_time_skips_further_tools_and_keeps_earlier_traces() -> None:
+    times = [90.0, 92.0, 92.0, 96.0, 96.0]
+    index = 0
+
+    def clock() -> float:
+        nonlocal index
+        value = times[min(index, len(times) - 1)]
+        index += 1
+        return value
+
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="toolu_geo_1",
+                        name="find_geography",
+                        input={"query": "Texas", "level": "State"},
+                    ),
+                    ToolUseBlock(
+                        id="toolu_geo_2",
+                        name="find_geography",
+                        input={"query": "Nevada", "level": "State"},
+                    ),
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            )
+        ]
+    )
+    answer = _loop(llm, settings=_settings(AGENT_MIN_SECONDS_PER_LLM_CALL=5.0), clock=clock).run(
+        _user_message("Population of Texas and Nevada?"),
+        deadline=100.0,
+    )
+    assert answer.outcome == "error"
+    assert answer.stop_reason == "timeout"
+    assert [trace.name for trace in answer.tool_calls] == ["find_geography"]
+    assert answer.tool_calls[0].input["query"] == "Texas"
+    assert "find_geography" in answer.text
+    assert len(llm.calls) == 1
+
+
 def test_iteration_cap_returns_error() -> None:
     llm = FakeLLM(
         [

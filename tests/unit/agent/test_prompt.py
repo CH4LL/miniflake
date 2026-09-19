@@ -45,6 +45,7 @@ def test_system_prompt_defaults_vintage_population_and_compare() -> None:
     assert "`compare`" in lowered or "compare" in lowered
     assert "place searches" not in lowered
     assert "rolled up via SUM to Nation, State, and County" in prompt
+    assert str(int(_settings().response_budget_seconds)) in prompt
 
 
 def test_tool_descriptions_drop_place_and_default_vintage() -> None:

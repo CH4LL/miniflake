@@ -88,10 +88,11 @@ class Settings(BaseSettings):
     anthropic_thinking: str = Field(default="adaptive", alias="ANTHROPIC_THINKING")
     anthropic_timeout_seconds: float = Field(default=30.0, alias="ANTHROPIC_TIMEOUT_SECONDS")
     agent_max_iterations: int = Field(default=8, alias="AGENT_MAX_ITERATIONS")
-    agent_budget_seconds: float = Field(default=45.0, alias="AGENT_BUDGET_SECONDS")
+    agent_budget_seconds: float = Field(default=90.0, alias="AGENT_BUDGET_SECONDS")
     agent_min_seconds_per_llm_call: float = Field(
         default=5.0, alias="AGENT_MIN_SECONDS_PER_LLM_CALL"
     )
+    agent_timeout_handoff_seconds: float = Field(default=2.0, alias="AGENT_TIMEOUT_HANDOFF_SECONDS")
     agent_llm_retry_enabled: bool = Field(default=True, alias="AGENT_LLM_RETRY_ENABLED")
 
     response_budget_seconds: float = Field(default=60.0, alias="RESPONSE_BUDGET_SECONDS")
@@ -135,8 +136,14 @@ class Settings(BaseSettings):
     @property
     def api_request_timeout_seconds(self) -> float:
         return max(
-            self.response_budget_seconds - self.api_timeout_margin_seconds,
+            self.agent_budget_seconds + self.api_timeout_margin_seconds,
             self.agent_min_seconds_per_llm_call,
+        )
+
+    def inner_deadline_seconds(self, remaining_api_seconds: float) -> float:
+        return min(
+            self.agent_budget_seconds,
+            max(remaining_api_seconds - self.agent_timeout_handoff_seconds, 0.0),
         )
 
     def acs_wide_table_name(self, vintage: int, series_prefix: str) -> str:

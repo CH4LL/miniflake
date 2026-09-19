@@ -65,7 +65,7 @@ Algorithm:
    - Compute the remaining time; if below the configured minimum per call, stop with outcome `timeout`.
    - Call the LLM.
    - If `stop_reason` is `end_turn`, hand the text blocks to the composer.
-   - If `tool_use`, append the assistant content verbatim (including any `OpaqueBlock` thinking blocks), dispatch every tool call through the registry, append tool result blocks (serialized `ToolResult`), and continue.
+   - If `tool_use`, append the assistant content verbatim (including any `OpaqueBlock` thinking blocks), dispatch each tool call through the registry while remaining time is above the configured minimum per LLM call, append tool result blocks (serialized `ToolResult`), and continue. If remaining time is below that minimum, stop with outcome `timeout`.
    - If `max_tokens` or `other`, stop with outcome `llm_error`.
 3. If the loop exhausts iterations, stop with outcome `iteration_cap`.
 

@@ -57,9 +57,10 @@ def main() -> int:
         print("DEMO_PASSPHRASE is required", file=sys.stderr)
         return 1
     budget_seconds = float(os.environ.get("RESPONSE_BUDGET_SECONDS", "60"))
+    http_timeout = float(os.environ.get("HTTP_TIMEOUT_SECONDS", "120"))
 
     last_error: Exception | None = None
-    with httpx.Client(base_url=base_url, timeout=budget_seconds + 10) as client:
+    with httpx.Client(base_url=base_url, timeout=http_timeout) as client:
         for attempt in range(1, args.retries + 1):
             try:
                 payload, elapsed = run_once(client, budget_seconds)

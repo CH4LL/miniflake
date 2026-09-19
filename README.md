@@ -42,7 +42,7 @@ The deploy script builds and pushes the container, applies Cloud Run settings fr
 - A single warm Cloud Run instance (no autoscaling).
 - In-memory conversation storage (sessions are lost if the instance restarts).
 - Count measures at nation, state, and county; median and rate measures at block-group level only.
-- Server-side response budget enforced on every request (see `RESPONSE_BUDGET_SECONDS` in configuration).
+- Server-side response budget is the normal-conditions target (evals and the system prompt); a longer hard timeout lets complex lookups finish. See `RESPONSE_BUDGET_SECONDS` and `AGENT_BUDGET_SECONDS` in configuration.
 
 ## Architecture
 
@@ -121,7 +121,7 @@ See [ADR-003](docs/adr/ADR-003-dataset-selection.md) and [ADR-004](docs/adr/ADR-
 - **Count questions** (e.g. population) at nation, state, county or place level are answered by summing block groups.
 - **Median and rate questions** (e.g. median income, poverty rate) at those rolled-up levels are declared unanswerable; the same measures are answerable at block group level.
 - Tract and street-level questions are out of scope.
-- The 60-second response requirement is enforced server-side.
+- The normal-conditions latency target is scored in evals and suggested to the model; a longer hard timeout is enforced server-side.
 - Demo authentication is a shared passphrase, available from the author on request.
 
 ## Documents

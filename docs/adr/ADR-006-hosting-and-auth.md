@@ -21,7 +21,7 @@ For authentication:
 
 ## Decision
 
-Cloud Run from a Docker image built with `uv`, secrets in Secret Manager, structured JSON logging to Cloud Logging, minimum and maximum instances set to one during the review window, request timeout above the response budget. Demo access through a shared passphrase that sets an HMAC-signed, HTTP-only cookie; the passphrase is shared out of band. The health endpoint stays unauthenticated.
+Cloud Run from a Docker image built with `uv`, secrets in Secret Manager, structured JSON logging to Cloud Logging, minimum and maximum instances set to one during the review window, request timeout above the hard API timeout. Demo access through a shared passphrase that sets an HMAC-signed, HTTP-only cookie; the passphrase is shared out of band. The health endpoint stays unauthenticated.
 
 ## Consequences
 

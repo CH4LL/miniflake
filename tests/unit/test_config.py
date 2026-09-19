@@ -191,5 +191,49 @@ def test_agent_and_anthropic_settings_defaults(isolated_env: None, apply_env) ->
     assert settings.anthropic_model == "claude-sonnet-5"
     assert settings.anthropic_effort == "low"
     assert settings.agent_max_iterations == 8
-    assert settings.agent_budget_seconds == 45.0
+    assert settings.response_budget_seconds == 60.0
+    assert settings.agent_budget_seconds == 90.0
+    assert settings.agent_budget_seconds > settings.response_budget_seconds
+    assert settings.agent_timeout_handoff_seconds == 2.0
+    assert settings.api_request_timeout_seconds == (
+        settings.agent_budget_seconds + settings.api_timeout_margin_seconds
+    )
+    assert settings.api_request_timeout_seconds > settings.agent_budget_seconds
     assert settings.agent_llm_retry_enabled is True
+
+
+def test_inner_deadline_uses_remaining_api_window_minus_handoff(
+    isolated_env: None, apply_env
+) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+        }
+    )
+    settings = Settings(_env_file=None)
+    remaining_after_classifier = settings.api_request_timeout_seconds - 5.0
+    assert settings.inner_deadline_seconds(remaining_after_classifier) == (
+        remaining_after_classifier - settings.agent_timeout_handoff_seconds
+    )
+
+
+def test_inner_deadline_respects_explicit_agent_budget_cap(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+            "AGENT_BUDGET_SECONDS": "45",
+        }
+    )
+    settings = Settings(_env_file=None)
+    remaining_larger_than_agent_budget = 80.0
+    assert settings.inner_deadline_seconds(remaining_larger_than_agent_budget) == 45.0

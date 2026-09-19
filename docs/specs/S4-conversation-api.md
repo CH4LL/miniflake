@@ -28,7 +28,7 @@ Guardrail logic (S5), demo authentication (S6), persistence beyond process memor
 - `ResolvedContext` is updated from `Success` tool results after each turn.
 - Request contract: `{"message": str}`; response: `{"conversation_id", "text", "outcome", "provenance": [...], "tool_calls": [...], "latency_ms"}`.
 - Errors: `{"error": {"code", "message", "request_id"}}` with codes `invalid_input`, `timeout`, `upstream_unavailable`, `internal`. Stack traces never reach the client; the request id is logged with the exception.
-- The request timeout is the response budget minus a safety margin; on expiry the API returns 200 with `outcome: "error"` and the timeout template rather than a 5xx. The route enforces this with a hard outer timeout in a worker thread; a cancellation token prevents a late-finishing turn from overwriting newer state.
+- The request timeout is the agent hard budget plus a safety margin; on expiry the API returns 200 with `outcome: "error"` and the timeout template rather than a 5xx. The route enforces this with a hard outer timeout in a worker thread; a cancellation token prevents a late-finishing turn from overwriting newer state. The agent-loop deadline is computed after guardrails from the remaining request window minus a handoff margin, so the loop timeout template is returned before the outer route timeout. The response budget is the normal-conditions target used for evals and suggested to the model; it is not the hard cutoff.
 - Message length is capped by configuration; empty or over-long input returns `invalid_input`.
 
 ## S3 layer changes (spec gap)

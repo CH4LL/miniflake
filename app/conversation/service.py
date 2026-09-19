@@ -90,10 +90,9 @@ class ConversationService:
                 conversation.messages,
                 window_turns=self._settings.conversation_history_window_turns,
             )
-            deadline = started + min(
-                self._settings.agent_budget_seconds,
-                self._settings.api_request_timeout_seconds,
-            )
+            now = self._clock()
+            remaining_api = self._settings.api_request_timeout_seconds - (now - started)
+            deadline = now + self._settings.inner_deadline_seconds(remaining_api)
             answer = self._loop.run(
                 history,
                 deadline,

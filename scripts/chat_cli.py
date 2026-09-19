@@ -32,7 +32,9 @@ def run_question(question: str, settings: Settings | None = None) -> None:
         llm = AnthropicLLMClient(resolved_settings)
         registry = default_registry(resolved_settings)
         loop = AgentLoop(llm, registry, repository, resolved_settings)
-        deadline = time.monotonic() + resolved_settings.agent_budget_seconds
+        deadline = time.monotonic() + resolved_settings.inner_deadline_seconds(
+            resolved_settings.api_request_timeout_seconds
+        )
         messages = [Message(role="user", content=[TextBlock(text=question)])]
         answer = loop.run(messages, deadline)
         print(f"Outcome: {answer.outcome}")

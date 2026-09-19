@@ -4,6 +4,13 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S8: Agent timeout alignment
+- Inner agent deadline is derived from the remaining API request window after guardrails, with a handoff margin so the loop timeout template wins over the outer route timeout.
+- The response budget remains the normal-conditions target for evals and the system prompt; the hard agent/API timeout is longer so complex lookups can finish.
+- Cloud Run and eval HTTP timeouts sit above that hard window.
+- The agent loop skips further tool dispatch when remaining time is below the per-LLM-call minimum.
+- Eval scoring asserts the eval latency budget default matches the product response budget.
+
 ### S8: Prompt and guardrail hardening
 - Intent classifier no longer treats omitted ACS vintage as missing; the pipeline ignores `missing=vintage` and named population questions do not clarify measure.
 - System prompt defaults unspecified year to the latest 5-year vintage, maps population to B01003, and steers multi-geography questions to `compare`.

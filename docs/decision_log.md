@@ -478,3 +478,24 @@ Why: Uvicorn `--reload` does not surface stream logs usefully locally, and termi
 Dropped: Cloud Logging changes; rotating/viewer UI; logging full prompts at info.
 Refs: app/logging.py, specs/S7-deployment.md, ADR-006
 
+## 2026-09-19  Agent loop deadline derived from remaining API window
+Stage: S8 | Type: decision
+What: Default agent budget matches the product response budget. `ConversationService` computes the loop deadline after guardrails from remaining API time minus a handoff margin. The loop refuses further tool dispatch when remaining time is below the per-LLM-call minimum. CLI uses the same inner-deadline helper.
+Why: A follow-up turn stopped on a 45s inner cap at ~50s wall clock (`stop_reason=timeout`) while CF-4 and the API timeout still had headroom. Classifier time was counted against that inner cap. The last `find_variable` ran past the deadline because remaining time was only checked before LLM calls; the outer `wait_for` timeout would have returned "Attempted: none".
+Dropped: Raising only the inner default without deriving from the API window; leaving tool dispatch ungated so a late query could overrun into the route timeout.
+Refs: requirements CF-4, specs/S3-agent-core.md, specs/S4-conversation-api.md, app/config.py
+
+## 2026-09-19  Poverty variable-search thrash left for later S8
+Stage: S8 | Type: deviation
+What: Did not change `find_variable` matching or prompts for poverty queries in this pass.
+Why: The premature stop was the inner timeout cap. The failed turn also spent the budget on six `find_variable` calls without `get_value`; that is a separate hardening item.
+Dropped: Catalog or prompt work for poverty in the same change as the timeout stack.
+Refs: logs/app.jsonl conversation a97becd4-9017-4201-81ec-8f92ae367035
+
+## 2026-09-19  60s is the eval and LLM target; hard timeouts are longer
+Stage: S8 | Type: decision
+What: Kept `RESPONSE_BUDGET_SECONDS` as the CF-4 normal-conditions target: eval latency scoring and the system-prompt time hint. Raised the hard agent budget and API `wait_for` above that target, with Cloud Run and eval HTTP timeouts above the hard window, so a complex lookup can finish instead of being cut at the eval target.
+Why: CF-4 requires complete responses within 60 seconds under normal conditions, not that every request must be killed at 60s. Scoring evals at 60s still measures the requirement; telling the model that budget reduces tool thrash; a longer hard cutoff is the safety net.
+Dropped: Using the response budget as the API hard timeout; keeping eval HTTP timeout only slightly above the eval latency budget.
+Refs: requirements CF-4, specs/S4-conversation-api.md, evals/eval_config.yaml
+

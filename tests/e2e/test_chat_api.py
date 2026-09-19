@@ -261,6 +261,7 @@ def test_request_timeout_returns_error_outcome() -> None:
 
     settings = _settings(
         RESPONSE_BUDGET_SECONDS=0.2,
+        AGENT_BUDGET_SECONDS=0.2,
         API_TIMEOUT_MARGIN_SECONDS=0.05,
         AGENT_MIN_SECONDS_PER_LLM_CALL=0.01,
     )

@@ -19,7 +19,7 @@ class EvalSettings(BaseSettings):
     )
 
     latency_budget_seconds: float = Field(default=60.0, alias="LATENCY_BUDGET_SECONDS")
-    http_timeout_seconds: float = Field(default=70.0, alias="HTTP_TIMEOUT_SECONDS")
+    http_timeout_seconds: float = Field(default=120.0, alias="HTTP_TIMEOUT_SECONDS")
     retry_count: int = Field(default=1, alias="RETRY_COUNT")
     default_tolerance_pct: float = Field(default=1.0, alias="DEFAULT_TOLERANCE_PCT")
     default_target_url: str = Field(

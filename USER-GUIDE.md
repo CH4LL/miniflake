@@ -153,7 +153,7 @@ curl -b cookies.txt -c cookies.txt \
 
 Errors return `{"error": {"code", "message", "request_id"}}`. Codes include `invalid_input`, `timeout`, `upstream_unavailable`, and `internal`. Every response includes an `X-Request-Id` header.
 
-When the request exceeds the configured response budget, the API returns HTTP 200 with `outcome: "error"` and a timeout message rather than a 5xx.
+When the request exceeds the configured hard timeout, the API returns HTTP 200 with `outcome: "error"` and a timeout message rather than a 5xx.
 
 ### Authentication
 
