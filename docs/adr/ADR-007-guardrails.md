@@ -1,6 +1,6 @@
 # ADR-007: Guardrails
 
-Status: accepted (2026-09-19), amended (2026-09-19)
+Status: accepted, amended in S8
 
 ## Context
 
@@ -18,13 +18,13 @@ The agent must refuse off-topic and inappropriate requests, resist instruction i
 Option 3, with the output grounding check removed in S8.
 
 - Pre-checks: length and pattern rules maintained in a YAML file, no LLM call.
-- Intent classifier: one structured-output call to the cheaper model, classifying into in scope, needs clarification, off topic, harmful, with the last two turns as context. Fails open to the agent on error, logged.
+- Intent classifier: one structured-output call to the cheaper model, classifying into in scope, capability, needs clarification, off topic, harmful, with the last two turns as context. An omitted year is not a missing slot (the tools default to the latest vintage). Fails open to the agent on error, logged.
 - Tool-only data access: the model cannot obtain data except through typed tools (ADR-004).
 - Refusal and clarification texts are templates in a YAML file.
 
-## Amendment (2026-09-19)
+## Amendment (S8): output grounding check removed
 
-The output numeric grounding check was removed. It rejected legitimate multi-turn answers that cited figures from earlier turns (for example comparing 2019 and 2020 populations across follow-up questions). Numeric grounding now relies on tool-only data access, the system prompt, and eval value checks (scoring only, not runtime blocking).
+The output numeric grounding check was removed. It rejected legitimate multi-turn answers that cited figures from earlier turns (for example comparing 2019 and 2020 populations across follow-up questions), and widening it to accept sums and differences of returned values did not cover follow-ups. Numeric grounding now relies on tool-only data access, the system prompt, and eval value checks (scoring only, not runtime blocking).
 
 ## Consequences
 

@@ -23,7 +23,7 @@ Verify hooks are active: `uv run pre-commit run --all-files` should pass on a cl
 
 - Follow test-driven development as required by `.cursorrules`: write the tests listed under "Tests to write first" in the given order, watch them fail, implement, watch them pass.
 - Keep adjustable values in `app/config.py` (or the YAML files the spec names), never in code or documentation.
-- When a decision is made that the spec did not anticipate, or an approach is tried and abandoned, add an entry to [decision_log.md](decision_log.md) immediately, in the entry format defined there.
+- When an architecturally relevant decision is made that the spec did not anticipate, or an approach is tried and abandoned, add an entry to [decision_log.md](decision_log.md) immediately, in the entry format defined there. Routine implementation, verification runs and bug fixes belong in the changelog and git history, not the log.
 - When an alternative architecture is weighed, write an ADR in [adr/](adr/) following the existing files' structure and link it from the decision log.
 - If the spec turns out to be wrong or incomplete, edit the spec first, then implement. Specs are living documents; the roadmap order is not.
 - Do not start the next stage's work inside the current stage. If something from a later stage is a hard prerequisite, note it in the decision log and do the minimum.
@@ -32,20 +32,20 @@ Verify hooks are active: `uv run pre-commit run --all-files` should pass on a cl
 
 Run through every item before setting the stage to `done`:
 
-- [ ] Every acceptance criterion in the spec is covered by a passing test or, for manual criteria, verified and noted in the decision log.
+- [ ] Every acceptance criterion in the spec is covered by a passing test or, for manual criteria, verified and noted in the changelog entry.
 - [ ] Ruff and pytest pass locally (same as CI): `uv run ruff check .`, `uv run ruff format --check .`, `uv run pytest`. If pre-commit hooks are installed, they run automatically on commit.
 - [ ] Do not use `git commit --no-verify` to skip pre-commit hooks.
-- [ ] Live tests relevant to the stage pass when run with credentials (record the date in the decision log).
+- [ ] Live tests relevant to the stage pass when run with credentials (note it in the changelog entry).
 - [ ] [CHANGELOG.md](../CHANGELOG.md) has an entry for the stage.
 - [ ] [ARCHITECTURE.md](../ARCHITECTURE.md) reflects the components that now exist.
 - [ ] [USER-GUIDE.md](../USER-GUIDE.md) reflects any user-facing behaviour added.
-- [ ] [decision_log.md](decision_log.md) has entries for every decision, dead end and deviation encountered.
+- [ ] [decision_log.md](decision_log.md) has entries for every architectural decision, dead end and deviation encountered.
 - [ ] The spec's "Documentation updates at stage end" list is complete.
 - [ ] [roadmap.md](roadmap.md): stage status set to `done`, "Last updated" line updated.
 
 ## Cutting a stage
 
-If time forces a cut, follow the cut order in the roadmap. Set the stage status to `cut`, add a decision log entry of type `cut` stating what was dropped and the user-visible consequence, and add the item to the "edge cases and failure modes" or "with more time" section of [reflection.md](reflection.md).
+If time forces a cut, follow the cut order in the roadmap. Set the stage status to `cut`, add a decision log entry of type `cut` stating what was dropped and the user-visible consequence, and add the item to the "edge cases and failure modes" or "with more time" section of [REFLECTION.md](../REFLECTION.md).
 
 ## Evaluations
 

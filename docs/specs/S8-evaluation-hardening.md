@@ -61,4 +61,4 @@ Statistical rigour beyond a single run; automatic prompt optimisation; terminal 
 
 ## Documentation updates at stage end
 
-`docs/testing-strategy.md` (evaluation results, how to run and re-score, accepted failures), `docs/reflection.md` (edge cases and failure modes), `ARCHITECTURE.md` (eval harness, composer outcome rules, search budget), `CHANGELOG.md`, `docs/roadmap.md`, `docs/decision_log.md` for each decision and accepted failure.
+`docs/testing-strategy.md` (evaluation results, how to run and re-score, accepted failures), `REFLECTION.md` (edge cases and failure modes), `ARCHITECTURE.md` (eval harness, composer outcome rules, search budget), `CHANGELOG.md`, `docs/roadmap.md`, `docs/decision_log.md` for each decision and accepted failure.

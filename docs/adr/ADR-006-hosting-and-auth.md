@@ -1,6 +1,6 @@
 # ADR-006: Hosting and demo authentication
 
-Status: accepted (2026-09-19)
+Status: accepted
 
 ## Context
 

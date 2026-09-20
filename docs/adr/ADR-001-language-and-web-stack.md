@@ -1,6 +1,6 @@
 # ADR-001: Language and web stack
 
-Status: accepted (2026-09-19)
+Status: accepted
 
 ## Context
 

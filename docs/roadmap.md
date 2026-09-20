@@ -6,7 +6,7 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-20 (S8 done; S9 next).
+Last updated: 2026-09-20 (S9 done; S10 cut).
 
 ## Stages
 
@@ -21,8 +21,8 @@ Last updated: 2026-09-20 (S8 done; S9 next).
 | S6 | Web UI and demo auth | 2.0 h | done | [S6-web-ui-auth.md](specs/S6-web-ui-auth.md) |
 | S7 | Deployment | 1.5 h | done | [S7-deployment.md](specs/S7-deployment.md) |
 | S8 | Evaluation and hardening | 3.0 h | done | [S8-evaluation-hardening.md](specs/S8-evaluation-hardening.md) |
-| S9 | Documentation and reflection | 2.0 h | todo | [S9-docs-reflection.md](specs/S9-docs-reflection.md) |
-| S10 | Public data supplement | 2.0 h | todo | [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) |
+| S9 | Documentation and reflection | 2.0 h | done | [S9-docs-reflection.md](specs/S9-docs-reflection.md) |
+| S10 | Public data supplement | 2.0 h | cut | [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) |
 
 ## Stage summaries
 
@@ -83,7 +83,7 @@ Exit criteria: suite green including the runner self-test; report from current `
 
 ### S9 Documentation and reflection
 
-Goal: final README, `docs/reflection.md`, `docs/testing-strategy.md`, `docs/EXTENDING.md`; ARCHITECTURE, USER-GUIDE and CHANGELOG synchronized.
+Goal: final README, `REFLECTION.md`, `docs/testing-strategy.md`, `docs/EXTENDING.md`; ARCHITECTURE, USER-GUIDE and CHANGELOG synchronized.
 
 Exit criteria: a reader with no context can run the project locally, access the demo and understand every architectural decision from the README and linked documents.
 
@@ -97,9 +97,10 @@ If the remaining time is insufficient, cut in this order and record each cut in 
 4. `compare` tool (the model can call `get_value` twice).
 Never cut: S0 to S4, the pre-checks and intent classifier of S5, S7, S9.
 
-## Optional extensions (only after S9)
+## Optional extensions (not started)
 
-- **S10 Public data supplement**: Place and CBSA questions via `SNOWFLAKE_PUBLIC_DATA_FREE`; see [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) for deferred eval items (L06, AG01, L05, R03).
+S10 (Place and CBSA via `SNOWFLAKE_PUBLIC_DATA_FREE`) is **cut**; see the decision log. Remaining ideas, not on the roadmap:
+
 - Constrained free-SQL tool with an allow-list validator, for questions the typed tools cannot express.
 - Persistent `ConversationStore` (Firestore or Redis).
 - Streaming responses.

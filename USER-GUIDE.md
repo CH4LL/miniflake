@@ -1,6 +1,6 @@
 # User guide
 
-Miniflake answers questions about the US population using American Community Survey data. This guide describes how to use the features that exist; it grows as stages in [docs/roadmap.md](docs/roadmap.md) are completed.
+Miniflake answers questions about the US population using American Community Survey data. This guide describes how to use the shipped features. Stage status is in [docs/roadmap.md](docs/roadmap.md).
 
 ## Current state
 
@@ -14,7 +14,7 @@ Cloud Run keeps one warm instance during the review window. Conversations are st
 
 ## Using the chat page
 
-Open the application root URL in a browser (for example `http://localhost:8000/` when running locally). If demo auth is enabled, you will see a passphrase login form first.
+Open the application root URL in a browser (for example `http://localhost:8080/` when running locally with the README command). If demo auth is enabled, you will see a passphrase login form first.
 
 The chat page provides:
 
@@ -135,7 +135,7 @@ Example with curl (cookie jar):
 curl -c cookies.txt -b cookies.txt \
   -H "Content-Type: application/json" \
   -d '{"message":"What is the population of Texas?"}' \
-  http://localhost:8000/api/chat
+  http://localhost:8080/api/chat
 ```
 
 Follow up in the same session:
@@ -144,7 +144,7 @@ Follow up in the same session:
 curl -b cookies.txt -c cookies.txt \
   -H "Content-Type: application/json" \
   -d '{"message":"And in Florida?"}' \
-  http://localhost:8000/api/chat
+  http://localhost:8080/api/chat
 ```
 
 ### Reset conversation

@@ -2,6 +2,8 @@
 
 Rationale and alternatives are in [ADR-008](adr/ADR-008-testing-strategy.md). This document describes the layers, what each catches, what is deliberately left out, and how to run them. Per-stage test lists are in the stage specs under [specs/](specs/).
 
+At the end of the build, `uv run pytest -q -m "not live and not browser"` collects and passes 333 tests (253 unit, 53 component, 27 e2e). A further 24 are opt-in: 14 Snowflake contract cases parametrized with the fake, 9 under `tests/live/`, and 1 Playwright smoke. Full collect-only is 357.
+
 ## Layers
 
 | Layer | Location | Doubles used | Catches | Runs in CI |
@@ -80,4 +82,4 @@ Items whose failure in the committed report is accepted rather than fixed, with 
 | UL02 | A street address. The same clarification path fires, where an explanation that no sub-block-group geography exists would serve the user better. Distinguishing "ambiguous" from "below the smallest supported grain" needs a place and address catalogue the dataset does not carry. |
 | L06 | Place-level question. Currently passes: the agent explains the limit and offers the containing county. It stays on this list because a substitution of the county figure without saying so would also read as an answer to a user, and only the text distinguishes them. |
 
-The golden set also records one dataset gap rather than a behaviour gap. The curated catalogue in `fixtures/variable_catalog_spec.yaml` lists poverty, housing, health insurance and commuting series, but the marketplace field-description table returns no estimate rows for them, so `find_variable` cannot reach them and the system prompt advertises topics the tools cannot serve. L07 therefore expects `unanswerable`. Trimming the catalogue to the series that are actually reachable needs a live metadata query and is listed in [reflection.md](reflection.md).
+The golden set also records one dataset gap rather than a behaviour gap. The curated catalogue in `fixtures/variable_catalog_spec.yaml` lists poverty, housing, health insurance and commuting series, but the marketplace field-description table returns no estimate rows for them, so `find_variable` cannot reach them and the system prompt advertises topics the tools cannot serve. L07 therefore expects `unanswerable`. Trimming the catalogue to the series that are actually reachable needs a live metadata query and is listed in [REFLECTION.md](../REFLECTION.md).

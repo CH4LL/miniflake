@@ -1,6 +1,6 @@
 # ADR-004: Query strategy
 
-Status: accepted (2026-09-19). Amended 2026-09-19 for SafeGraph block-group schema and counts-only rollups.
+Status: accepted, amended for the SafeGraph block-group schema and counts-only rollups
 
 ## Context
 
@@ -19,7 +19,7 @@ Option 2 for the core. Six tools: `find_geography`, `find_variable`, `get_value`
 
 **Aggregation inside the repository** (not left to the LLM):
 
-| `aggregation_kind` | Block group | State / County / Place / Nation (rolled up) |
+| `aggregation_kind` | Block group | County / State / Nation (rolled up) |
 | :--- | :--- | :--- |
 | `count` | Direct column read | `SUM` across constituent block groups; provenance records `aggregation_method: sum` |
 | `median`, `rate` | Direct column read | `UnsupportedRequest`: medians and rates cannot be validly derived from block-group values at aggregate geography |
@@ -28,10 +28,12 @@ Ranking and comparison tools apply the same rule: only count fields at rolled-up
 
 Option 4 is recorded as an optional extension after the roadmap completes.
 
+Name resolution (`find_geography`, `find_variable`) is a catalog search, not an LLM guess: geography names are matched against the FIPS metadata and variable phrases are matched token-wise against field titles plus curated aliases in `fixtures/variable_catalog_spec.yaml`. Both return `Ambiguous` with candidates rather than picking one. Per-turn search calls are capped (ADR-010).
+
 ## Consequences
 
 - The LLM never writes SQL; the read-only role and the execute guard are defence in depth rather than the primary safety mechanism.
-- Every "cannot answer" case is a typed value, which the composer and guardrails can act on deterministically.
+- Every "cannot answer" case is a typed value, which the composer can act on deterministically (ADR-011).
 - Many natural-language questions about median income or poverty rates at state or county level are honestly unanswerable from this dataset; the agent explains why and offers a block-group reformulation or a count-based alternative where one exists.
 - Some legitimate questions fall outside the tool set; the agent says so and suggests a supported reformulation. This is a deliberate tradeoff recorded for the reflection.
 - Adding a question type means adding a tool, which is the documented extension path.

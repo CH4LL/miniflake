@@ -4,6 +4,15 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### S9: Documentation and reflection
+
+- README: shipped-state status, example questions by eval category, full configuration reference (names and purposes), interpretations of ambiguous requirements.
+- `REFLECTION.md` (repository root) filled: process and ADRs, more-time list including the S10 cut, edge cases, testing counts and eval reports, how Cursor was used.
+- Testing strategy records default-suite counts; EXTENDING lists file paths that exist and wires extensions through `app/api/deps.py`.
+- ARCHITECTURE and USER-GUIDE aligned (S0–S9, local port 8080, Place/CBSA cut).
+- S10 marked `cut` on the roadmap; first decision-log `cut` entry.
+- Documentation restructure: reflection moved to the repository root; README reorganised around demo evaluation, architecture summary, a key-decisions table and requirement interpretations, with the configuration reference moved to `docs/configuration.md`; decision log pruned to architecturally relevant entries without dates; ADR-003/004/005/007/008 brought up to the shipped state; ADR-009 (conversation context content), ADR-010 (time and tool budgets) and ADR-011 (outcome classification) added.
+
 ### S8: Evaluation and hardening
 
 Eval harness

@@ -1,6 +1,6 @@
 # ADR-002: LLM provider
 
-Status: accepted (2026-09-19)
+Status: accepted
 
 ## Context
 
