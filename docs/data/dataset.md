@@ -186,6 +186,8 @@ Curated field count: 7.
 
 <!-- catalog-snapshot-end -->
 
+The curated spec in `fixtures/variable_catalog_spec.yaml` lists more series than the snapshot above contains: the field-description table returns no estimate rows for the poverty, housing, health insurance and commuting series, so `find_variable` cannot return them and questions about those topics are unanswerable. The spec still carries their topic and aggregation kind, which is what the system prompt renders.
+
 ## Aggregation policy
 
 Documented in [ADR-004](../adr/ADR-004-query-strategy.md): count fields roll up via SUM; median and rate fields do not roll up beyond block group.

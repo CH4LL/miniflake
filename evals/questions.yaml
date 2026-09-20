@@ -86,13 +86,9 @@ items:
   - id: L07
     category: lookup
     question: What percentage of people in Mississippi live below the poverty line?
-    expected: answer
-    provenance:
-      series: B17001
-      level: State
-      aggregation_method: sum
+    expected: unanswerable
     max_tool_calls: 5
-    notes: B17001 holds counts (total, below poverty) that roll up to State via SUM; a pass fetches both counts and states the derived share, or states the counts. No value check because the share is derived. Previously thrashed on six find_variable calls; the alias "poverty line" and the search budget pin the fix.
+    notes: B17001 is tagged as counts that would roll up to State via SUM, but the marketplace field-description table returns no estimate rows for the series, so no poverty field is reachable through find_variable. A pass says the measure is not available in this dataset within the search budget; naming a poverty figure would be ungrounded.
     status: active
 
   # ---------- Direct lookups (medians at block group — native grain) ----------

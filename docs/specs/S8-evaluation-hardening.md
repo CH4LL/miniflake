@@ -27,7 +27,7 @@ Close the evaluation harness so it can be iterated on without credentials, fix t
 
 - Token-based variable search in SQL and the fake repository, plus curated aliases per series in the catalog spec.
 - Batch geography name lookup (`get_geographies`) so `rank_geographies` makes one call instead of one per row.
-- Retag B17001 to `count` with a catalog-spec test and change L07 to `answer`; only alongside token-based search.
+- Retag B17001 to `count` with a catalog-spec test, and set the L07 expectation to whichever outcome the field-description table can support; only alongside token-based search.
 - Parallel root groups in the runner (`--workers`), with the concurrency stated in the report header.
 
 ## Out of scope

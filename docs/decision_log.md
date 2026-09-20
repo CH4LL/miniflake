@@ -576,3 +576,17 @@ Why: The thrash fix and the composer rule needed items that fail if they regress
 Dropped: Retiring MV01–MV03 in favour of MV04 (all four exercise different classifier paths).
 Refs: evals/questions.yaml, tests/unit/evals/test_loader.py
 
+
+## 2026-09-20  S8 live run and its triage
+Stage: S8 | Type: decision
+What: One live run of the full golden set against the deployed service, committed as `20260920T002700Z`, and its offline re-score `20260920T004303Z` after L07 was corrected. 51 of 53 items pass; AG01 and UL02 fail on outcome and are accepted; latency p50 and p95 are inside the response budget with four concurrent root groups.
+Why: The plan reserved a single run as a measurement. AG01 and UL02 ask about a geography the dataset cannot express (an ambiguous place, a street address) and the classifier asks which geography is meant before the agent can explain the limit. Separating "ambiguous" from "below the smallest supported grain" needs a place and address catalogue that the dataset does not carry, so the behaviour is kept and both items keep the stricter `unanswerable` expectation.
+Dropped: Fixing and re-running; widening the pre-checks to catch street addresses by pattern, which would guess at a limit the data layer cannot confirm.
+Refs: evals/reports/20260920T002700Z.md, evals/reports/20260920T004303Z.md, docs/testing-strategy.md
+
+## 2026-09-20  L07 expects unanswerable: no poverty field is reachable
+Stage: S8 | Type: deviation
+What: L07 changed back from `answer` to `unanswerable` with no provenance. The B17001 `count` tag and the poverty aliases stay.
+Why: The live run shows three poverty queries returning nothing although the search adds `OR TABLE_NUMBER IN (alias series)`, which would return every estimate row of the series if any existed. The S1 catalog snapshot found the same: its poverty and housing queries produced no fields, and the curated fixture holds seven fields over five topics. The marketplace field-description table therefore exposes no estimate rows for the poverty, housing, health insurance and commuting series that the catalogue spec lists, so no aliasing can make the measure findable and an `answer` expectation would pin behaviour the data cannot produce.
+Dropped: Trimming the catalogue spec to the reachable series, which would stop the system prompt advertising those topics but cannot be verified without a live metadata query; recorded as remaining work in the reflection.
+Refs: evals/questions.yaml, fixtures/variable_catalog_spec.yaml, fixtures/variables.json, docs/testing-strategy.md

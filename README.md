@@ -119,7 +119,8 @@ See [ADR-003](docs/adr/ADR-003-dataset-selection.md) and [ADR-004](docs/adr/ADR-
 
 - **Dataset:** [US Open Census Data & Neighborhood Insights - Free Dataset](https://app.snowflake.com/marketplace/listing/GZSNZ2UNN0/safegraph-us-open-census-data-neighborhood-insights-free-dataset) (SafeGraph) on Snowflake Marketplace. ACS 5-year estimates at census block group level.
 - **Count questions** (e.g. population) at nation, state, county or place level are answered by summing block groups.
-- **Median and rate questions** (e.g. median income, median rent) at those rolled-up levels are declared unanswerable; the same measures are answerable at block group level. Poverty status is stored as counts, so poverty shares at state and county level are derived from summed counts.
+- **Median and rate questions** (e.g. median income, median rent) at those rolled-up levels are declared unanswerable; the same measures are answerable at block group level.
+- **Curated topics are not all populated.** The catalog lists more series than the marketplace field-description table returns fields for; questions about an unpopulated topic are declared unanswerable after a bounded search.
 - Tract and street-level questions are out of scope.
 - The normal-conditions latency target is scored in evals and suggested to the model; a longer hard timeout is enforced server-side.
 - Demo authentication is a shared passphrase, available from the author on request.

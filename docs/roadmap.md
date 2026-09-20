@@ -6,7 +6,7 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-20 (S8 in progress; only the manual live run remains).
+Last updated: 2026-09-20 (S8 done; S9 next).
 
 ## Stages
 
@@ -20,7 +20,7 @@ Last updated: 2026-09-20 (S8 in progress; only the manual live run remains).
 | S5 | Guardrails | 2.0 h | done | [S5-guardrails.md](specs/S5-guardrails.md) |
 | S6 | Web UI and demo auth | 2.0 h | done | [S6-web-ui-auth.md](specs/S6-web-ui-auth.md) |
 | S7 | Deployment | 1.5 h | done | [S7-deployment.md](specs/S7-deployment.md) |
-| S8 | Evaluation and hardening | 3.0 h | in-progress | [S8-evaluation-hardening.md](specs/S8-evaluation-hardening.md) |
+| S8 | Evaluation and hardening | 3.0 h | done | [S8-evaluation-hardening.md](specs/S8-evaluation-hardening.md) |
 | S9 | Documentation and reflection | 2.0 h | todo | [S9-docs-reflection.md](specs/S9-docs-reflection.md) |
 | S10 | Public data supplement | 2.0 h | todo | [S10-public-data-supplement.md](specs/S10-public-data-supplement.md) |
 
@@ -80,7 +80,6 @@ Goal: make the eval harness cheap to iterate on without live runs (raw observati
 
 Exit criteria: suite green including the runner self-test; report from current `main` committed; strict-gate status recorded and every failure listed in the testing strategy with a reason; roadmap, changelog, architecture, testing strategy, reflection and decision log updated.
 
-Remaining: the single manual live run (deploy `main`, `run_evals.py --strict`, commit the report, triage into accepted failures), after which S8 is marked done.
 
 ### S9 Documentation and reflection
 

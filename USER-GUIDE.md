@@ -45,7 +45,8 @@ To disable auth for local development, set `DEMO_AUTH_ENABLED=false` in your `.e
 The agent answers US census questions backed by SafeGraph ACS 5-year block-group data.
 
 - **Supported geographies:** block group (native), and nation, state, and county for **count** measures rolled up from block groups.
-- **Median measures** (median income, median age, median rent, and similar) are available only at block-group level. Poverty is stored as counts, so poverty shares at state and county level are derived from summed counts.
+- **Median and rate measures** (median income, median age, median rent, and similar) are available only at block-group level.
+- **Not every listed topic has data.** The agent's topic list comes from the curated catalog, and some of those topics have no fields in the current dataset snapshot. Ask for one of them and the agent says the measure is not available rather than guessing.
 - **Place and CBSA** levels are not supported in the current dataset.
 - **Specify a year** when you need a particular ACS vintage; otherwise the latest available vintage is used.
 - **Follow-up questions** reuse the last resolved geography, variable, and vintage from earlier turns in the same session.

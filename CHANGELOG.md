@@ -30,10 +30,13 @@ Data layer
 - `SnowflakeCensusRepository` reuses one Snowflake session per process via `is_closed()` and drops the session on a transient connection error.
 
 Golden set
-- Version 5: `max_tool_calls` per item; capability item M03; search-budget item MV04; L07 expects `answer` via B17001 with SUM provenance; `expected_missing` for clarify items; CF01 expects unanswerable.
+- Version 5: `max_tool_calls` per item; capability item M03; search-budget item MV04; `expected_missing` for clarify items; CF01 and L07 expect unanswerable, the latter because the field-description table exposes no poverty estimate rows.
 
 Docs
-- S8 spec rewritten as the offline-first plan; testing strategy documents harness modes, baseline results and accepted failures; reflection edge cases and with-more-time items filled; architecture covers the eval harness, composer rules, search budget, token search and batch lookups.
+- S8 spec rewritten as the offline-first plan; testing strategy documents harness modes, the committed run and its accepted failures; reflection edge cases and with-more-time items filled; architecture covers the eval harness, composer rules, search budget, token search and batch lookups; guardrails spec covers the capability intent.
+
+Evaluation
+- Golden-set run against the deployed service committed under `evals/reports/`, together with its offline re-score after the L07 correction; remaining failures are listed with reasons in the testing strategy.
 
 ### Local JSON lines logging
 - `configure_logging` appends JSON lines to `LOG_FILE` (gitignored `logs/` by default locally) while keeping the stderr stream handler for Cloud Logging.

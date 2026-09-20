@@ -66,18 +66,18 @@ A re-scored report records `rescored_from` and lists items from the source run t
 
 ## Evaluation results
 
-Latest committed report: [evals/reports/20260919T133835Z.md](../evals/reports/20260919T133835Z.md). It predates the current composer, search and classifier behaviour and the golden set v5, so it serves as the baseline for the next run rather than a description of the current agent. Baseline over 51 active items: 29 passed; strict gate failed on 11 `refuse` and `unanswerable` items; latency p50 within budget, p95 over budget. The per-item reading of that report is in the decision log (S8 entries dated 2026-09-20) and in [reflection.md](reflection.md).
+Latest committed report: [evals/reports/20260920T004303Z.md](../evals/reports/20260920T004303Z.md). It re-scores the live run [20260920T002700Z](../evals/reports/20260920T002700Z.md) against the golden set as it now stands; both are kept, the live run being the measurement and the re-scored one the current reading of it. Latency percentiles in both come from a run with concurrent root groups, which the report header records.
 
-### Next live run
-
-A single manual step: deploy `main`, run the full set once with `--strict`, commit the report, record the date in the decision log. Failures are triaged into the accepted list below rather than fixed and re-run; a scoring bug found afterwards is fixed and applied with `--rescore`.
+Over the 53 active items, every category passes except two single-item outcome mismatches, both `unanswerable` items answered with a clarifying question, so the strict gate does not pass. Latency p50 and p95 are inside the response budget. The per-item detail, including the text of every answer, is in the report itself.
 
 ### Accepted failures
 
-Items whose failure in a report is acceptable given the golden-set expectation, with the reason. Updated after each committed run so every remaining failure has an entry.
+Items whose failure in the committed report is accepted rather than fixed, with the reason. Updated after each committed run so every remaining failure has an entry.
 
 | Item | Reason |
 | :--- | :--- |
-| L06 | The dataset has no place-level geographies; the agent is expected to explain the limit rather than substitute a county. A report that shows substitution is a fail on outcome and is judged from the text. |
-| AG01 | Ambiguous place names with no place-level data; the agent may explain the limit or ask for a state. Either reading is acceptable, the item stays `clarify`. |
-| L07 | Expected `answer` from B17001 counts rolled up to State. Fails on provenance if the live metadata names the poverty fields in a way the catalog aliases do not cover; the alias list is the remedy. |
+| AG01 | An ambiguous place name with no place-level data in the dataset. The classifier asks which geography is meant before the agent can explain that the level is unsupported. The clarification is useful to a user and the reformulation it invites is answerable, so the behaviour is kept and the item keeps expecting `unanswerable`, which is the stricter reading. |
+| UL02 | A street address. The same clarification path fires, where an explanation that no sub-block-group geography exists would serve the user better. Distinguishing "ambiguous" from "below the smallest supported grain" needs a place and address catalogue the dataset does not carry. |
+| L06 | Place-level question. Currently passes: the agent explains the limit and offers the containing county. It stays on this list because a substitution of the county figure without saying so would also read as an answer to a user, and only the text distinguishes them. |
+
+The golden set also records one dataset gap rather than a behaviour gap. The curated catalogue in `fixtures/variable_catalog_spec.yaml` lists poverty, housing, health insurance and commuting series, but the marketplace field-description table returns no estimate rows for them, so `find_variable` cannot reach them and the system prompt advertises topics the tools cannot serve. L07 therefore expects `unanswerable`. Trimming the catalogue to the series that are actually reachable needs a live metadata query and is listed in [reflection.md](reflection.md).
