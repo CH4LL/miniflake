@@ -85,6 +85,17 @@ def _client(container: AppContainer) -> TestClient:
 def _simple_answer_script() -> list[LLMResponse]:
     return [
         LLMResponse(
+            content=[
+                ToolUseBlock(
+                    id="toolu_value_tx",
+                    name="get_value",
+                    input={"field_id": "B01003e1", "geo_id": "48"},
+                )
+            ],
+            stop_reason="tool_use",
+            usage=Usage(),
+        ),
+        LLMResponse(
             content=[TextBlock(text="Texas population is available from ACS.")],
             stop_reason="end_turn",
             usage=Usage(),

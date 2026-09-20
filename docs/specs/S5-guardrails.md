@@ -26,7 +26,7 @@ Content moderation beyond the classifier; rate limiting (S7 mentions Cloud Run c
 
 ### Intent classifier (`app/guardrails/classifier.py`)
 
-One call to the classifier model with a structured output schema: `{intent: in_scope | needs_clarification | off_topic | harmful, reason: str, confidence: float, missing: geography | measure | vintage | generic | null}`. Input is the current message plus the last two turns so that follow-ups like "and in Florida?" are classified in context. Context is rendered as plain text only (never raw `tool_use` blocks). Configuration sets the model and a confidence threshold below which `in_scope` is treated as `needs_clarification`. Omitted vintage is not treated as missing: the agent defaults to the latest ACS 5-year release. Capability questions (what the agent can answer, where the data comes from) are in_scope. Classifier failure (timeout or error) fails open to the agent loop and is logged; the agent's own grounding rules remain as protection.
+One call to the classifier model with a structured output schema: `{intent: in_scope | capability | needs_clarification | off_topic | harmful, reason: str, confidence: float, missing: geography | measure | vintage | generic | null}`. Input is the current message plus the last two turns so that follow-ups like "and in Florida?" are classified in context. Context is rendered as plain text only (never raw `tool_use` blocks). Configuration sets the model and a confidence threshold below which `in_scope` is treated as `needs_clarification`. Omitted vintage is not treated as missing: the agent defaults to the latest ACS 5-year release. Capability questions (what the agent can answer, where the data comes from, which years are covered) are `capability`: they proceed to the agent loop and are the one case where a reply without tool calls is labelled `answer`. The confidence threshold does not downgrade `capability`. Classifier failure (timeout or error) fails open to the agent loop and is logged; the agent's own grounding rules remain as protection.
 
 ### Templates (`app/guardrails/templates.yaml`)
 
@@ -34,7 +34,7 @@ Off-topic (states what the agent covers: US population questions from the SafeGr
 
 ### Pipeline (`app/guardrails/pipeline.py`)
 
-`GuardrailPipeline` composes pre-checks and the classifier. It returns a layer-neutral `GuardrailDecision` (`outcome`, `text`); `ConversationService` builds the `AgentAnswer` so `app/guardrails/` never imports `app/agent/`. Guardrail short-circuit turns (refusal and clarification) are persisted as user plus assistant text so a follow-up answering the clarification has an antecedent. If the classifier returns `needs_clarification` with `missing=vintage`, the pipeline does not short-circuit and the agent loop runs. Population phrasing (`population`, `how many people`, `populous`) does not short-circuit a `missing=measure` decision.
+`GuardrailPipeline` composes pre-checks and the classifier. It returns a layer-neutral `GuardrailDecision` (`outcome`, `text`, `ungrounded_answer_allowed`); `refuse`, `clarify` and `unanswerable` short-circuit, `proceed` lets the agent loop run and carries `ungrounded_answer_allowed` for capability turns. `ConversationService` builds the `AgentAnswer` so `app/guardrails/` never imports `app/agent/`. Guardrail short-circuit turns (refusal and clarification) are persisted as user plus assistant text so a follow-up answering the clarification has an antecedent. If the classifier returns `needs_clarification` with `missing=vintage`, the pipeline does not short-circuit and the agent loop runs. Population phrasing (`population`, `how many people`, `populous`) does not short-circuit a `missing=measure` decision.
 
 ## Acceptance criteria
 
@@ -42,6 +42,7 @@ Off-topic (states what the agent covers: US population questions from the SafeGr
 - Given an injection phrase from the pattern list, then the outcome is `refuse` and the classifier was not called.
 - Given a classifier response `needs_clarification` with `missing=geography` or `measure` (and the message is not a named population question), then the outcome is `clarify` with the template text and the agent loop was not called.
 - Given a classifier response `needs_clarification` with `missing=vintage`, then the agent loop runs.
+- Given a classifier response `capability`, then the agent loop runs with `ungrounded_answer_allowed` and a reply without tool calls is labelled `answer`.
 - Given a classifier timeout, then the agent loop runs normally and a warning is logged.
 
 ## Tests to write first

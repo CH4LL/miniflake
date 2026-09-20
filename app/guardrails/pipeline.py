@@ -60,6 +60,8 @@ class GuardrailPipeline:
             return GuardrailDecision(outcome="refuse", text=self._templates["off_topic"])
         if decision.intent == "harmful":
             return GuardrailDecision(outcome="refuse", text=self._templates["harmful"])
+        if decision.intent == "capability":
+            return GuardrailDecision(outcome="proceed", text="", ungrounded_answer_allowed=True)
         if decision.intent == "needs_clarification":
             missing = decision.missing or "generic"
             if missing == "vintage":

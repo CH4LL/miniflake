@@ -118,6 +118,23 @@ def _client(container: AppContainer) -> TestClient:
     return TestClient(create_app(container=container))
 
 
+def _grounded_answer_script(geo_id: str, text: str) -> list[LLMResponse]:
+    return [
+        LLMResponse(
+            content=[
+                ToolUseBlock(
+                    id="toolu_value",
+                    name="get_value",
+                    input={"field_id": "B01003e1", "geo_id": geo_id},
+                )
+            ],
+            stop_reason="tool_use",
+            usage=Usage(),
+        ),
+        LLMResponse(content=[TextBlock(text=text)], stop_reason="end_turn", usage=Usage()),
+    ]
+
+
 def test_refuse_eval_items_block_data_access() -> None:
     refuse_items = _load_eval_items("refuse")
     for item in refuse_items:
@@ -178,29 +195,21 @@ def test_geography_clarify_skips_agent_loop() -> None:
 
 def test_vintage_clarify_does_not_short_circuit() -> None:
     classifier_llm = FakeLLM([_classifier_response("needs_clarification", missing="vintage")])
-    agent_llm = FakeLLM(
-        [
-            LLMResponse(
-                content=[TextBlock(text="Oregon population is available from ACS.")],
-                stop_reason="end_turn",
-                usage=Usage(),
-            )
-        ]
-    )
+    agent_llm = FakeLLM(_grounded_answer_script("41", "Oregon population is available from ACS."))
     repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
     client = _client(_build_container(classifier_llm, agent_llm, repository))
     response = client.post("/api/chat", json={"message": "What is the population of Oregon?"})
     assert response.status_code == 200
     assert response.json()["outcome"] == "answer"
-    assert len(agent_llm.calls) == 1
+    assert len(agent_llm.calls) == 2
 
 
-def test_classifier_timeout_fails_open_to_agent_loop() -> None:
-    classifier_llm = FakeLLM([LLMError("timeout", retryable=True)])
+def test_no_tool_explanation_is_labelled_unanswerable() -> None:
+    classifier_llm = FakeLLM([_classifier_response("in_scope")])
     agent_llm = FakeLLM(
         [
             LLMResponse(
-                content=[TextBlock(text="Texas has census data.")],
+                content=[TextBlock(text="IQ is not a metric collected in the ACS dataset.")],
                 stop_reason="end_turn",
                 usage=Usage(),
             )
@@ -208,7 +217,48 @@ def test_classifier_timeout_fails_open_to_agent_loop() -> None:
     )
     repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
     client = _client(_build_container(classifier_llm, agent_llm, repository))
+    response = client.post("/api/chat", json={"message": "What is the average IQ in Nebraska?"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "unanswerable"
+    assert body["tool_calls"] == []
+    assert repository.call_count == 0
+
+
+def test_capability_question_is_labelled_answer_without_tools() -> None:
+    classifier_llm = FakeLLM([_classifier_response("capability")])
+    agent_llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    TextBlock(
+                        text=(
+                            "I answer US population questions from the SafeGraph Open Census "
+                            "ACS block-group data on Snowflake Marketplace."
+                        )
+                    )
+                ],
+                stop_reason="end_turn",
+                usage=Usage(),
+            )
+        ]
+    )
+    repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
+    client = _client(_build_container(classifier_llm, agent_llm, repository))
+    response = client.post("/api/chat", json={"message": "What kind of questions can you answer?"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["outcome"] == "answer"
+    assert body["tool_calls"] == []
+    assert len(agent_llm.calls) == 1
+
+
+def test_classifier_timeout_fails_open_to_agent_loop() -> None:
+    classifier_llm = FakeLLM([LLMError("timeout", retryable=True)])
+    agent_llm = FakeLLM(_grounded_answer_script("48", "Texas has census data."))
+    repository = RecordingRepository(FakeCensusRepository(settings=_settings()))
+    client = _client(_build_container(classifier_llm, agent_llm, repository))
     response = client.post("/api/chat", json={"message": "What is the population of Texas?"})
     assert response.status_code == 200
     assert response.json()["outcome"] == "answer"
-    assert len(agent_llm.calls) == 1
+    assert len(agent_llm.calls) == 2

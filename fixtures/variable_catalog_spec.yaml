@@ -1,40 +1,111 @@
+# Curated ACS series exposed to the agent.
+# aliases: optional phrases a user may say for the series; every alias token must
+# overlap a query token (shared stem) for the series to be included in a search.
 series:
   - series_id: B01003
     topic: Population
     aggregation_kind: count
+    aliases:
+      - population
+      - people
+      - residents
+      - inhabitants
+      - populous
   - series_id: B01002
     topic: Age and Sex
     aggregation_kind: median
+    aliases:
+      - median age
+      - average age
   - series_id: B01001
     topic: Age and Sex
     aggregation_kind: count
+    aliases:
+      - sex by age
+      - age groups
+      - men
+      - women
+      - children
+      - seniors
   - series_id: B19013
     topic: Income
     aggregation_kind: median
+    aliases:
+      - median household income
+      - median income
+      - typical income
   - series_id: B19001
     topic: Income
     aggregation_kind: count
+    aliases:
+      - household income brackets
+      - income distribution
+      - households earning
   - series_id: B17001
     topic: Poverty
-    aggregation_kind: rate
+    aggregation_kind: count
+    aliases:
+      - poverty
+      - poverty line
+      - below poverty
+      - poor
+      - low income
   - series_id: B15003
     topic: Education
     aggregation_kind: count
+    aliases:
+      - education
+      - educational attainment
+      - degree
+      - college graduates
+      - high school
+      - bachelors
   - series_id: B25064
     topic: Housing
     aggregation_kind: median
+    aliases:
+      - median rent
+      - gross rent
   - series_id: B25077
     topic: Housing
     aggregation_kind: median
+    aliases:
+      - median home value
+      - house prices
+      - property value
   - series_id: B25003
     topic: Housing
     aggregation_kind: count
+    aliases:
+      - tenure
+      - homeowners
+      - renters
+      - owner occupied
+      - renter occupied
   - series_id: B08301
     topic: Commuting
     aggregation_kind: count
+    aliases:
+      - commuting
+      - commute
+      - transportation to work
+      - drive to work
+      - public transit
   - series_id: B27001
     topic: Health Insurance
     aggregation_kind: count
+    aliases:
+      - health insurance
+      - insured
+      - uninsured
+      - coverage
   - series_id: B23025
     topic: Employment
     aggregation_kind: count
+    aliases:
+      - employment
+      - employed
+      - unemployment
+      - unemployed
+      - labor force
+      - jobs

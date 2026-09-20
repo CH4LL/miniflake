@@ -22,18 +22,30 @@ Placeholder. Candidates already known at planning time:
 - Broader variable catalog curation and per-topic prompt guidance.
 - Statistically valid median/rate rollups at state and county level (would require a different data product or published aggregate tables).
 
-Add items discovered during implementation and any stage marked `cut` in the roadmap.
+Discovered during S8:
+
+- Terminal pseudo-tools (`declare_unanswerable`, `ask_clarification`) so the model states its outcome explicitly instead of the composer inferring it from tool traces and classifier intent. Dropped in S8 because the behaviour change could not be verified offline (decision log 2026-09-20).
+- Report classifier token usage from `/api/chat` so the eval cost line covers both models instead of agent tokens only.
+- Batch `available_vintages` for `compare`, the last per-geography lookup in the tools.
+- Learned or LLM-generated variable aliases instead of the hand-curated list in `fixtures/variable_catalog_spec.yaml`.
+- A second live run after the final report to measure variance; the plan reserves a single run.
+
+Add any stage marked `cut` in the roadmap.
 
 ## Edge cases and failure modes identified but not fully addressed
 
-Placeholder. Populate from:
+Observed in the S8 baseline report ([evals/reports/20260919T133835Z.md](../evals/reports/20260919T133835Z.md)), in local `logs/app.jsonl`, and while writing the offline tests. Items are cited by golden-set id.
 
-- Eval items that failed or passed weakly in the S8 report, by id.
-- Grounding-check false negatives observed (legitimate derived figures rejected).
-- Geography resolution limits (names shared across levels, abbreviations, nicknames).
-- Measurement period confusion (1-year versus 5-year estimates) in user questions.
-- Behaviour when Snowflake or the LLM is slow enough to exhaust the budget mid-loop.
-- Injection variants not covered by the pattern list.
+- **Outcome labels inferred from prose.** Six of the eleven strict-gate failures (L05, R02, MV01, MV02, UL01, UL02) were correct answers labelled `answer` because the composer only recognised a fixed list of "not supported" phrases, while M01 and M02 needed the opposite. The composer now labels a no-tool turn `unanswerable` unless the classifier marked it `capability` (decision log 2026-09-20). Remaining gap: a no-tool clarifying question written by the model ("which Washington?") is labelled `unanswerable`, not `clarify`; the classifier is expected to catch missing geography earlier, and the golden set treats the agent-written clarify as a pass only when a tool returned `ambiguous`.
+- **Variable-search thrash.** L07 and AV02 spent six `find_variable` calls on phrases such as "population below poverty line" that no whole-phrase substring matched. Search is now token-based with catalog aliases and the loop caps search calls per turn (`AGENT_MAX_SEARCH_CALLS`); the golden set pins the count with `max_tool_calls`. Remaining gap: aliases are hand-curated per series; a measure phrased outside them still costs the full budget before the model gives up.
+- **Latency tails from N+1 lookups.** F04 and AT02 pushed p95 to 49 s: one Snowflake session per query (fixed by `is_closed()` reuse) and one `get_geography` per ranked row (fixed by batch `get_geographies`). Remaining gap: `compare` still calls `available_vintages` per geography, and a cold warehouse adds seconds the harness attributes to the agent.
+- **Classifier misroutes.** MV03 ("crime rate in Chicago") was refused as off-topic; UP01–UP03 and R03/AG03 were clarified for omitted vintage. Prompt changes moved these; the classifier remains a single cheap call with two turns of context and still fails open on error, so a burst of errors would let off-topic questions reach the agent.
+- **Place substitution (L06).** Asked about a place with no place-level data, the model may pick a nearby county and answer. The prompt forbids silent level switching; the eval judges from the text. No deterministic guard exists because the substitution happens inside the model's reasoning.
+- **Ambiguous place names (AG01, AG03).** "Orange County" exists in eight states in the fixtures alone. `find_geography` returns `ambiguous` with candidates, but the model sometimes chooses one when the user gave a hint that does not match a state name. Nicknames ("the Bay Area") and abbreviations beyond state codes are not resolved.
+- **Measurement period confusion.** Users asking for "2020 population" receive the 2020 ACS 5-year estimate (2016–2020), which differs from the 2020 decennial count. The tool descriptions carry the note; the answer text does not always repeat it.
+- **Budget exhaustion mid-loop.** When the LLM or Snowflake is slow, the loop stops dispatching tools below the per-call minimum and the composer returns the timeout template with the attempted tool list. The user gets an honest error, not a partial answer.
+- **Injection coverage.** The pattern list covers the golden-set injection variants (I01–I03); paraphrased instructions in another language or split across turns are not matched and rely on the classifier and the tool-only data path.
+- **Value checks on derived figures.** L07 states a share computed from two counts; the harness cannot verify it against a single reference value, so the item has no value check.
 
 ## Testing approach and what I would add
 

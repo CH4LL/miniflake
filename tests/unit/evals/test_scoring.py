@@ -7,7 +7,14 @@ from app.guardrails.pipeline import load_templates
 from evals.config import EvalSettings
 from evals.loader import EvalItem, ProvenanceExpectation, ValueCheck
 from evals.report import EvalRun, render_json, render_markdown
-from evals.scoring import ChatObservation, ItemResult, RunSummary, score_item, summarize
+from evals.scoring import (
+    ChatObservation,
+    Failure,
+    ItemResult,
+    RunSummary,
+    score_item,
+    summarize,
+)
 
 
 def _item(**overrides: object) -> EvalItem:
@@ -60,7 +67,38 @@ def test_outcome_mismatch_fails() -> None:
         latency_budget_seconds=60,
     )
     assert not result.passed
-    assert any("outcome expected refuse" in failure for failure in result.failures)
+    assert any("outcome expected refuse" in failure.message for failure in result.failures)
+    assert result.failures[0].kind == "outcome"
+
+
+def test_result_carries_observation_and_golden_note() -> None:
+    item = _item(notes="Latest vintage; SUM rollup.")
+    observation = _observation(conversation_id="conv-1")
+    result = score_item(item, observation, latency_budget_seconds=60)
+    assert result.note == "Latest vintage; SUM rollup."
+    assert result.observation is not None
+    assert result.observation.conversation_id == "conv-1"
+    assert result.observation.tool_calls == observation.tool_calls
+
+
+def test_max_tool_calls_exceeded_fails_with_tool_budget_kind() -> None:
+    item = _item(max_tool_calls=1)
+    observation = _observation(
+        tool_calls=[
+            {"name": "find_variable", "result_kind": "not_found"},
+            {"name": "find_variable", "result_kind": "not_found"},
+            {"name": "get_value", "result_kind": "success", "data": {}},
+        ]
+    )
+    result = score_item(item, observation, latency_budget_seconds=60)
+    assert not result.passed
+    assert [failure.kind for failure in result.failures] == ["tool_budget"]
+    assert "3 tool calls exceed max 1" in result.failures[0].message
+
+
+def test_max_tool_calls_within_budget_passes() -> None:
+    result = score_item(_item(max_tool_calls=1), _observation(), latency_budget_seconds=60)
+    assert result.passed
 
 
 def test_wrong_canned_clarify_template_fails() -> None:
@@ -80,7 +118,7 @@ def test_wrong_canned_clarify_template_fails() -> None:
         latency_budget_seconds=60,
     )
     assert not result.passed
-    assert any("clarify slot" in failure for failure in result.failures)
+    assert any(failure.kind == "clarify_slot" for failure in result.failures)
 
 
 def test_matching_canned_clarify_template_passes() -> None:
@@ -127,7 +165,7 @@ def test_expect_no_data_call_violation_fails() -> None:
         latency_budget_seconds=60,
     )
     assert not result.passed
-    assert any("no data call" in failure for failure in result.failures)
+    assert any(failure.kind == "no_data_call" for failure in result.failures)
 
 
 def test_provenance_series_level_geo_and_aggregation() -> None:
@@ -198,7 +236,7 @@ def test_provenance_compare_payload_matches_geo_name() -> None:
 def test_latency_over_budget_fails() -> None:
     result = score_item(_item(), _observation(latency_ms=70000), latency_budget_seconds=60)
     assert not result.passed
-    assert any("latency" in failure for failure in result.failures)
+    assert any(failure.kind == "latency" for failure in result.failures)
 
 
 def test_value_check_within_tolerance_passes() -> None:
@@ -294,6 +332,8 @@ def test_report_rendering_from_fixed_result_set() -> None:
         target_url="http://localhost:8080",
         started_at=datetime(2026, 9, 19, tzinfo=UTC),
         finished_at=datetime(2026, 9, 19, tzinfo=UTC),
+        rescored_from="20260919T133835Z",
+        missing_items=["ZZ99"],
         results=[
             ItemResult(
                 id="OT01",
@@ -301,7 +341,11 @@ def test_report_rendering_from_fixed_result_set() -> None:
                 expected="refuse",
                 observed_outcome="answer",
                 passed=False,
-                failures=["outcome expected refuse, got answer"],
+                failures=[
+                    Failure(kind="outcome", message="outcome expected refuse, got answer"),
+                    Failure(kind="latency", message="latency 70000ms exceeds budget 60000ms"),
+                ],
+                note="Polite refusal stating what the agent covers.",
                 text="Here is a poem.",
             )
         ],
@@ -312,6 +356,14 @@ def test_report_rendering_from_fixed_result_set() -> None:
     payload = render_json(run)
     assert "OT01" in markdown
     assert "FAIL" in markdown
+    assert "Note: Polite refusal" in markdown
+    assert "Rescored from: 20260919T133835Z" in markdown
+    assert "ZZ99" in markdown
+    assert "agent tokens only" in markdown
+    triage = markdown.split("## Failures for triage", 1)[1]
+    assert "### outcome" in triage
+    assert "### latency" in triage
+    assert triage.index("### latency") > triage.index("### outcome")
     assert '"OT01"' in payload
 
 

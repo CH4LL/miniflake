@@ -9,7 +9,7 @@ from app.data.rollup import level_for_geo_id, series_id_from_field_id
 from app.guardrails.pipeline import load_templates
 from evals.config import EvalSettings
 from evals.loader import EvalItem
-from evals.numbers import extract_numbers
+from evals.numeric import extract_numbers
 
 
 class UsageSummary(BaseModel):
@@ -24,6 +24,33 @@ class ChatObservation(BaseModel):
     tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     latency_ms: float = 0.0
     usage: UsageSummary = Field(default_factory=UsageSummary)
+    conversation_id: str | None = None
+
+
+FailureKind = Literal[
+    "outcome",
+    "clarify_slot",
+    "no_data_call",
+    "provenance",
+    "latency",
+    "value",
+    "tool_budget",
+]
+
+FAILURE_KIND_ORDER: tuple[FailureKind, ...] = (
+    "outcome",
+    "clarify_slot",
+    "no_data_call",
+    "provenance",
+    "tool_budget",
+    "value",
+    "latency",
+)
+
+
+class Failure(BaseModel):
+    kind: FailureKind
+    message: str
 
 
 class ValueCheckDetail(BaseModel):
@@ -40,7 +67,7 @@ class ItemResult(BaseModel):
     expected: str
     observed_outcome: str
     passed: bool
-    failures: list[str] = Field(default_factory=list)
+    failures: list[Failure] = Field(default_factory=list)
     latency_ms: float = 0.0
     input_tokens: int = 0
     output_tokens: int = 0
@@ -49,6 +76,7 @@ class ItemResult(BaseModel):
     value_check: ValueCheckDetail | None = None
     text: str = ""
     note: str = ""
+    observation: ChatObservation | None = None
 
 
 class CategorySummary(BaseModel):
@@ -172,7 +200,7 @@ def _extract_provenance_summary(observation: ChatObservation) -> dict[str, Any]:
     }
 
 
-def _check_clarify_slot(item: EvalItem, observation: ChatObservation) -> list[str]:
+def _check_clarify_slot(item: EvalItem, observation: ChatObservation) -> list[Failure]:
     if item.expected != "clarify" or item.expected_missing is None:
         return []
     if observation.outcome != "clarify":
@@ -188,37 +216,58 @@ def _check_clarify_slot(item: EvalItem, observation: ChatObservation) -> list[st
     for slot, key in slot_keys.items():
         canned = templates.get(key, "").strip()
         if canned and observed == canned and slot != item.expected_missing:
-            return [f"clarify slot expected {item.expected_missing}, got canned {slot} template"]
+            return [
+                Failure(
+                    kind="clarify_slot",
+                    message=(
+                        f"clarify slot expected {item.expected_missing}, got canned {slot} template"
+                    ),
+                )
+            ]
     return []
 
 
-def _check_provenance(item: EvalItem, summary: dict[str, Any]) -> list[str]:
+def _check_provenance(item: EvalItem, summary: dict[str, Any]) -> list[Failure]:
     if item.provenance is None:
         return []
-    failures: list[str] = []
+    messages: list[str] = []
     expected = item.provenance
     if expected.series is not None:
         if not any(series.startswith(expected.series) for series in summary["series_ids"]):
-            failures.append(
+            messages.append(
                 f"provenance series {expected.series} not found in {summary['series_ids']}"
             )
     if expected.level is not None:
         if expected.level not in summary["levels"]:
-            failures.append(f"provenance level {expected.level} not found in {summary['levels']}")
+            messages.append(f"provenance level {expected.level} not found in {summary['levels']}")
     if expected.geo_name_contains is not None:
         needle = expected.geo_name_contains.lower()
         if not any(needle in name.lower() for name in summary["geo_names"]):
-            failures.append(
+            messages.append(
                 f"provenance geo_name_contains '{expected.geo_name_contains}' "
                 f"not found in {summary['geo_names']}"
             )
     if expected.aggregation_method is not None:
         if expected.aggregation_method not in summary["aggregation_methods"]:
-            failures.append(
+            messages.append(
                 f"provenance aggregation_method {expected.aggregation_method} "
                 f"not found in {summary['aggregation_methods']}"
             )
-    return failures
+    return [Failure(kind="provenance", message=message) for message in messages]
+
+
+def _check_tool_budget(item: EvalItem, observation: ChatObservation) -> list[Failure]:
+    if item.max_tool_calls is None:
+        return []
+    observed = len(observation.tool_calls)
+    if observed <= item.max_tool_calls:
+        return []
+    return [
+        Failure(
+            kind="tool_budget",
+            message=f"{observed} tool calls exceed max {item.max_tool_calls}",
+        )
+    ]
 
 
 def _check_value(
@@ -264,22 +313,37 @@ def score_item(
     reference_value: float | None = None,
     default_tolerance_pct: float = 1.0,
 ) -> ItemResult:
-    failures: list[str] = []
+    failures: list[Failure] = []
     if observation.outcome != item.expected:
-        failures.append(f"outcome expected {item.expected}, got {observation.outcome}")
+        failures.append(
+            Failure(
+                kind="outcome",
+                message=f"outcome expected {item.expected}, got {observation.outcome}",
+            )
+        )
     failures.extend(_check_clarify_slot(item, observation))
     if item.expect_no_data_call and observation.tool_calls:
-        failures.append("expected no data call but tool_calls is non-empty")
+        failures.append(
+            Failure(
+                kind="no_data_call", message="expected no data call but tool_calls is non-empty"
+            )
+        )
     summary = _extract_provenance_summary(observation)
     failures.extend(_check_provenance(item, summary))
+    failures.extend(_check_tool_budget(item, observation))
     if observation.latency_ms > latency_budget_seconds * 1000:
         failures.append(
-            f"latency {observation.latency_ms:.0f}ms exceeds budget "
-            f"{latency_budget_seconds * 1000:.0f}ms"
+            Failure(
+                kind="latency",
+                message=(
+                    f"latency {observation.latency_ms:.0f}ms exceeds budget "
+                    f"{latency_budget_seconds * 1000:.0f}ms"
+                ),
+            )
         )
     value_detail = _check_value(item, observation, reference_value, default_tolerance_pct)
     if value_detail.status == "fail":
-        failures.append(value_detail.message)
+        failures.append(Failure(kind="value", message=value_detail.message))
     return ItemResult(
         id=item.id,
         category=item.category,
@@ -294,6 +358,8 @@ def score_item(
         provenance_summary=summary,
         value_check=value_detail if item.value_check is not None else None,
         text=observation.text,
+        note=item.notes or "",
+        observation=observation,
     )
 
 

@@ -4,22 +4,36 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
-### S8: Agent timeout alignment
-- Inner agent deadline is derived from the remaining API request window after guardrails, with a handoff margin so the loop timeout template wins over the outer route timeout.
-- The response budget remains the normal-conditions target for evals and the system prompt; the hard agent/API timeout is longer so complex lookups can finish.
-- Cloud Run and eval HTTP timeouts sit above that hard window.
-- The agent loop skips further tool dispatch when remaining time is below the per-LLM-call minimum.
-- Eval scoring asserts the eval latency budget default matches the product response budget.
+### S8: Evaluation and hardening
 
-### S8: Snowflake connection reuse
-- `SnowflakeCensusRepository` reuses one Snowflake session per process, calling `is_closed()` to decide when to reopen, and drops the cached session on a transient connection error so retry does not reuse a dead socket.
+Eval harness
+- `ItemResult` stores the raw `ChatObservation` and the golden note; failures are typed by kind (`outcome`, `clarify_slot`, `no_data_call`, `provenance`, `tool_budget`, `value`, `latency`).
+- `run_evals.py --rescore <report.json>` re-scores a saved run offline against the current golden set and rules, reusing saved reference values (`--requery-values` refreshes them); the report records `rescored_from` and lists items no longer active.
+- `--expected` filter alongside `--items` and `--categories`; `--questions` for an alternative golden set; `--workers N` runs root groups concurrently with one HTTP client each and records the worker count in the report header.
+- Report groups failures by kind for triage, prints the golden note per item, and labels cost as agent tokens only.
+- Runner accepts an injected HTTP client or client factory and question set; `tests/e2e/test_run_evals.py` runs it in-process against the app with fakes.
+- Legacy report JSON without raw observations is rejected with a clear message.
+- `evals/numbers.py` renamed to `evals/numeric.py` so running the script directly does not shadow the stdlib module.
 
-### S8: Prompt and guardrail hardening
-- Intent classifier no longer treats omitted ACS vintage as missing; the pipeline ignores `missing=vintage` and named population questions do not clarify measure.
-- System prompt defaults unspecified year to the latest 5-year vintage, maps population to B01003, and steers multi-geography questions to `compare`.
-- Removed output numeric grounding check and composer no-tools-with-numbers guard; multi-turn answers may cite prior-turn figures.
-- Number extraction for eval value checks moved to `evals/numbers.py`.
-- Golden set schema adds `expected_missing` for clarify items; CF01 expects unanswerable.
+Agent and guardrails
+- New `capability` classifier intent; the pipeline returns a `proceed` decision carrying `ungrounded_answer_allowed`, which the service forwards to the agent loop and composer.
+- `AnswerComposer` labels a turn with no tool traces `unanswerable` unless it is a capability turn; prose markers removed.
+- `AGENT_MAX_SEARCH_CALLS` caps `find_variable` and `find_geography` dispatches per turn; past the cap the loop returns an `unsupported_request` result asking the model to explain what could not be found. The system prompt states the time and search budgets.
+- Inner agent deadline is derived from the remaining API request window after guardrails, with a handoff margin; the loop skips tool dispatch when remaining time is below the per-LLM-call minimum. Hard agent, API, Cloud Run and eval HTTP timeouts sit above the response-budget target.
+- Intent classifier no longer treats omitted ACS vintage as missing; named population questions do not clarify measure. System prompt defaults unspecified year to the latest 5-year vintage, maps population to B01003, steers multi-geography questions to `compare`, and asks for re-fetching on follow-ups.
+- Removed output numeric grounding check; multi-turn answers may cite prior-turn figures.
+
+Data layer
+- Variable search is token-based: every significant query token must match the field title, label or id in any order; `fixtures/variable_catalog_spec.yaml` gains optional per-series `aliases` consulted by both repositories. SQL clauses are generated and parametrised.
+- `CensusRepository.get_geographies(geo_ids)` batch lookup with SQL template and fake; `rank_geographies` and `compare` resolve names in one call.
+- B17001 (poverty status) retagged `count`, enabling State and County rollups.
+- `SnowflakeCensusRepository` reuses one Snowflake session per process via `is_closed()` and drops the session on a transient connection error.
+
+Golden set
+- Version 5: `max_tool_calls` per item; capability item M03; search-budget item MV04; L07 expects `answer` via B17001 with SUM provenance; `expected_missing` for clarify items; CF01 expects unanswerable.
+
+Docs
+- S8 spec rewritten as the offline-first plan; testing strategy documents harness modes, baseline results and accepted failures; reflection edge cases and with-more-time items filled; architecture covers the eval harness, composer rules, search budget, token search and batch lookups.
 
 ### Local JSON lines logging
 - `configure_logging` appends JSON lines to `LOG_FILE` (gitignored `logs/` by default locally) while keeping the stderr stream handler for Cloud Logging.

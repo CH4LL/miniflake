@@ -87,28 +87,28 @@ class CompareTool:
         )
         provenance.append(observations.provenance)
         observation_by_geo = {row.geo_id: row for row in observations.rows}
-        compared: list[ComparedGeography] = []
-        for geo_id in payload.geo_ids:
-            observation = observation_by_geo.get(geo_id)
-            if observation is None:
-                return PeriodUnavailable(
-                    requested=str(selected_vintage),
-                    available=[
-                        f"{geo_id}: {', '.join(str(v) for v in available_by_geo[geo_id]) or 'none'}"
-                        for geo_id in payload.geo_ids
-                    ],
-                )
-            geography_result = repository.get_geography(geo_id)
-            provenance.append(geography_result.provenance)
-            compared.append(
-                ComparedGeography(
-                    geo_id=geo_id,
-                    geography_name=(
-                        geography_result.rows[0].name if geography_result.rows else geo_id
-                    ),
-                    value=observation.value,
-                )
+        missing_observation = [
+            geo_id for geo_id in payload.geo_ids if geo_id not in observation_by_geo
+        ]
+        if missing_observation:
+            return PeriodUnavailable(
+                requested=str(selected_vintage),
+                available=[
+                    f"{geo_id}: {', '.join(str(v) for v in available_by_geo[geo_id]) or 'none'}"
+                    for geo_id in payload.geo_ids
+                ],
             )
+        names = repository.get_geographies(payload.geo_ids)
+        provenance.append(names.provenance)
+        name_by_id = {geography.geo_id: geography.name for geography in names.rows}
+        compared = [
+            ComparedGeography(
+                geo_id=geo_id,
+                geography_name=name_by_id.get(geo_id, geo_id),
+                value=observation_by_geo[geo_id].value,
+            )
+            for geo_id in payload.geo_ids
+        ]
         first_value = compared[0].value
         second_value = compared[1].value
         absolute_difference = second_value - first_value

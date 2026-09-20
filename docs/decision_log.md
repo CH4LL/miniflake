@@ -506,3 +506,73 @@ Why: Local `logs/app.jsonl` showed 8–30 `connect()` calls per chat turn. `geta
 Dropped: Treating `is_closed` as a truthy attribute; reconnecting on every query; retrying on the same cached connection after "connection is closed".
 Refs: specs/S1-data-layer.md, app/data/snowflake_repository.py, logs/app.jsonl
 
+## 2026-09-20  S8 spec superseded: offline-first hardening
+Stage: S8 | Type: deviation
+What: Rewrote the S8 spec. Behaviour fixes are proven against fakes; the harness gains raw-observation storage, offline `--rescore`, an `--expected` filter and an in-process end-to-end test; one live run at the end produces the committed report.
+Why: The planned run-fix-rerun loop over 51 live items took over ten minutes and several dollars per iteration and surfaced one fixation at a time. Reading the last report against the code showed that most strict-gate failures were composer labelling and tool thrash, both deterministic and testable without an LLM. Time remaining does not allow further live iteration.
+Dropped: Iterative live eval runs as the development loop; terminal pseudo-tools for declaring outcomes (behaviour change not verifiable offline).
+Refs: specs/S8-evaluation-hardening.md, evals/reports/20260919T133835Z.md
+
+## 2026-09-20  Baseline report read against the code
+Stage: S8 | Type: decision
+What: Triaged the 22 failures in `20260919T133835Z` by cause before changing anything. L05, R02, MV01, MV02, UL01, UL02: correct "not supported" text labelled `answer` by the composer's phrase list. M01, M02: capability answers needing `answer` without tools. L07, AV02, MV01–MV03: six `find_variable` calls per turn from whole-phrase substring search. F04, AT02: p95 49 s from per-query Snowflake connects and per-row `get_geography`. F01–F03, T01, I03: grounding false negatives, already removed. R03, AG03, UP01–UP03, CF03: classifier prompt issues, already changed. L06, AG01: model behaviour, kept as accepted failures.
+Why: Grouping by cause showed most strict-gate failures were deterministic and testable offline, which justified the offline-first plan over another live run.
+Dropped: Fixing items one at a time from the report.
+Refs: evals/reports/20260919T133835Z.md, docs/testing-strategy.md
+
+## 2026-09-20  Outcomes typed from tool results and classifier intent, never from prose
+Stage: S8 | Type: decision
+What: Removed `UNANSWERABLE_TEXT_MARKERS` and `text_indicates_unanswerable` from the composer. A turn without tool traces is `unanswerable`; it is `answer` only when the guardrail pipeline marked the turn `capability` and passed `ungrounded_answer_allowed` through `ConversationService` and `AgentLoop.run`. Added the `capability` intent to the classifier enum and prompt and a `proceed` `GuardrailDecision` that does not short-circuit.
+Why: The phrase list was the single cause of six strict-gate failures and could never be complete. The system prompt requires tool calls before any figure, so a no-tool reply is, by construction, not a data answer. Capability questions are the one legitimate exception and the classifier already had to recognise them.
+Dropped: Terminal pseudo-tools (`declare_unanswerable`, `ask_clarification`) that the model would call to state its outcome; a behaviour change that could not be verified against `FakeLLM` without also scripting the new tool in every test. Inferring `clarify` from a question mark in no-tool text.
+Refs: app/agent/composer.py, app/guardrails/types.py, app/guardrails/pipeline.py, app/conversation/service.py, evals M01–M03, MV01, UL01
+
+## 2026-09-20  Search-call budget in the agent loop
+Stage: S8 | Type: decision
+What: `AGENT_MAX_SEARCH_CALLS` counts `find_variable` and `find_geography` dispatches per turn. Past the cap the loop does not call the registry and records an `UnsupportedRequest` whose reason tells the model to stop searching and explain what could not be found. The system prompt states the budget.
+Why: L07 and AV02 spent the whole time budget on six catalog searches with no data call. A hard cap bounds the cost of a bad query regardless of prompt compliance, and the composer already maps a trace set with no data-tool success to `unanswerable`.
+Dropped: Counting all tool calls (data tools are bounded by the iteration cap already); returning `ToolError` (would label the turn `error` instead of `unanswerable`).
+Refs: app/agent/loop.py, app/config.py, app/agent/prompts/system.md, evals L07, AV02, MV04
+
+## 2026-09-20  Token-based variable search with curated aliases
+Stage: S8 | Type: decision
+What: `search_variables` splits the query into significant tokens (stopwords dropped, capped) and requires every token to appear in title, field label or id in any order; generated parametrised `LIKE` clauses in SQL, the same rule in Python for the fake. `variable_catalog_spec.yaml` gains optional `aliases` per series; a series whose alias tokens all overlap the query tokens (shared six-character stem) is OR-ed into the result. Contract tests hold fake and live to parity.
+Why: Whole-phrase substring matching made "population below poverty line" and "how educated" match nothing, which was the root cause of the search thrash. Aliases cover phrasings that no token of the ACS title contains ("educated", "poverty line").
+Dropped: Full-text or semantic search in Snowflake (not available on the shared listing without extra objects); including `TABLE_TOPICS` in the token match (too broad: "Populations and People" matches most series); LLM-generated aliases (kept curated and reviewable).
+Refs: app/data/search_utils.py, app/data/sql/search_variables.sql, app/data/fake_repository.py, fixtures/variable_catalog_spec.yaml, tests/component/data/test_repository_contract.py
+
+## 2026-09-20  Batch geography names
+Stage: S8 | Type: decision
+What: Added `CensusRepository.get_geographies(geo_ids)` with a new SQL template and fake implementation; `rank_geographies` and `compare` resolve names in one call. Closes the S2 note about per-row lookups.
+Why: A ten-row ranking issued ten `get_geography` queries, each a full CTE over FIPS and block-group metadata; visible in the F04/AT02 latency tails.
+Dropped: Caching names in process (batching removes the need); a name column on the rollup query (would join the wide table to metadata on every ranking).
+Refs: app/data/repository.py, app/data/sql/get_geographies.sql, app/tools/rank_geographies.py, app/tools/compare.py
+
+## 2026-09-20  B17001 retagged to count; L07 expects answer
+Stage: S8 | Type: decision
+What: `B17001` aggregation kind changed from `rate` to `count` with a catalog-spec unit test. L07 now expects `answer` with provenance series B17001, level State, aggregation `sum`, no value check.
+Why: The B17001 fields in the listing are counts (total, income below poverty level) that roll up via SUM; the share the user asks for is derived from two counts. Only sensible once token search and aliases make the series findable. Resolves the 2026-09-19 entry that left the tag as `rate`.
+Dropped: A value check for L07 (the reference is a ratio of two fields, which the harness does not compute).
+Refs: fixtures/variable_catalog_spec.yaml, tests/unit/data/test_catalog.py, evals L07
+
+## 2026-09-20  Eval harness stores raw observations and re-scores offline
+Stage: S8 | Type: decision
+What: `ItemResult` carries the `ChatObservation` and golden note; failures are `Failure(kind, message)`. `evals/rescore.py` rebuilds observations from a saved JSON and re-scores against the current golden set and rules, reusing saved reference values. `--expected`, `--questions` and `--workers` added to the runner; the HTTP client (or a factory for workers) and question set are injectable so the runner is tested end to end against the app with fakes.
+Why: Every scoring-rule change previously forced a live rerun. Storing observations makes the report self-describing and re-scorable for free, and typed failure kinds allow grouping for triage. Reports produced before this change cannot be re-scored; the runner says so.
+Dropped: Re-scoring legacy reports by heuristics; sharing one `httpx.Client` across workers (cookies would mix conversations).
+Refs: evals/scoring.py, evals/rescore.py, evals/run_evals.py, evals/report.py, tests/e2e/test_run_evals.py, tests/unit/evals/test_rescore.py
+
+## 2026-09-20  evals/numbers.py renamed to evals/numeric.py
+Stage: S8 | Type: decision
+What: Renamed the eval number-extraction module.
+Why: Running `python evals/run_evals.py` puts `evals/` first on `sys.path`, so `evals/numbers.py` shadowed the stdlib `numbers` module and `decimal` failed to import inside pydantic. The failure only appeared when the script was executed directly, not under pytest.
+Dropped: Running the script as `python -m evals.run_evals` only (would leave the trap for the next person).
+Refs: evals/numeric.py, evals/run_evals.py
+
+## 2026-09-20  Golden set v5
+Stage: S8 | Type: decision
+What: Added `max_tool_calls` (tool_budget failure kind) and set it on L07, AV02, MV01–MV04; added M03 (capability, `expect_no_data_call`) and MV04 (census-sounding measure absent from the catalog); documented in the header that a no-tool turn is `unanswerable` unless capability.
+Why: The thrash fix and the composer rule needed items that fail if they regress; the previous set had no capability item beyond M01/M02 and no explicit tool-count expectation.
+Dropped: Retiring MV01–MV03 in favour of MV04 (all four exercise different classifier paths).
+Refs: evals/questions.yaml, tests/unit/evals/test_loader.py
+

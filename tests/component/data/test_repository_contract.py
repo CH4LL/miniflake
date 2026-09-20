@@ -47,6 +47,51 @@ def test_search_texas_state_first(repository: Repository) -> None:
     assert result.rows[0].level == GeoLevel.STATE
 
 
+def test_search_variables_tokens_are_order_independent(repository: Repository) -> None:
+    result = repository.search_variables("population total", None, limit=10)
+    assert result.rows
+    assert result.rows[0].field_id == "B01003e1"
+
+
+def test_search_variables_alias_stem_finds_education(repository: Repository) -> None:
+    result = repository.search_variables("educated", None, limit=10)
+    assert any(variable.series_id == "B15003" for variable in result.rows)
+
+
+def test_search_variables_all_tokens_required(repository: Repository) -> None:
+    result = repository.search_variables("median household income", None, limit=10)
+    assert result.rows
+    assert all(variable.series_id == "B19013" for variable in result.rows)
+
+
+def test_search_variables_unknown_measure_returns_nothing(repository: Repository) -> None:
+    result = repository.search_variables("zebra ownership", None, limit=10)
+    assert result.rows == []
+
+
+def test_get_geographies_returns_mixed_levels_in_one_call(repository: Repository) -> None:
+    result = repository.get_geographies(["48", "06059", "US"])
+    by_id = {geo.geo_id: geo for geo in result.rows}
+    assert set(by_id) == {"48", "06059", "US"}
+    assert by_id["48"].name == "Texas"
+    assert by_id["48"].level == GeoLevel.STATE
+    assert by_id["06059"].level == GeoLevel.COUNTY
+    assert by_id["06059"].name == "Orange County"
+    assert by_id["US"].level == GeoLevel.NATION
+    assert result.provenance.row_count == 3
+
+
+def test_get_geographies_skips_unknown_ids(repository: Repository) -> None:
+    result = repository.get_geographies(["48", "99"])
+    assert [geo.geo_id for geo in result.rows] == ["48"]
+
+
+def test_get_geographies_empty_input_is_empty_result(repository: Repository) -> None:
+    result = repository.get_geographies([])
+    assert result.rows == []
+    assert result.provenance.row_count == 0
+
+
 def test_get_observations_texas_population_rollup(repository: Repository) -> None:
     result = repository.get_observations("B01003e1", ["48"], vintage=2020)
     assert len(result.rows) == 1

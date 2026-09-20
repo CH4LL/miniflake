@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -18,26 +17,9 @@ from app.tools.results import (
     UnsupportedRequest,
 )
 
-NUMERIC_TOKEN = re.compile(r"\d")
 DATA_TOOL_NAMES = frozenset({"get_value", "rank_geographies", "compare", "get_trend"})
 UNAVAILABLE_KINDS = frozenset(
     {"not_found", "period_unavailable", "unsupported_request"},
-)
-UNANSWERABLE_TEXT_MARKERS = (
-    "isn't supported",
-    "not supported",
-    "can't answer",
-    "cannot answer",
-    "i can't answer",
-    "i cannot answer",
-    "is not available",
-    "not available in this dataset",
-    "does not include",
-    "is not a metric",
-    "cannot be ranked",
-    "cannot be aggregated",
-    "can't be ranked",
-    "can't be aggregated",
 )
 
 
@@ -71,6 +53,7 @@ class AnswerComposer:
         tool_traces: list[ToolCallTrace],
         provenance: list[Provenance],
         usage: Usage,
+        ungrounded_answer_allowed: bool = False,
     ) -> AgentAnswer:
         if stop_reason in {"timeout", "iteration_cap", "llm_error"}:
             template_key = stop_reason if stop_reason != "llm_error" else "llm_error"
@@ -95,18 +78,9 @@ class AnswerComposer:
 
         text = "\n".join(part.strip() for part in text_blocks if part.strip())
         if not tool_traces:
-            if text_indicates_unanswerable(text):
-                return AgentAnswer(
-                    text=text,
-                    outcome="unanswerable",
-                    provenance=[],
-                    tool_calls=tool_traces,
-                    usage=usage,
-                    stop_reason=stop_reason,
-                )
             return AgentAnswer(
                 text=text,
-                outcome="answer",
+                outcome="answer" if ungrounded_answer_allowed else "unanswerable",
                 provenance=[],
                 tool_calls=tool_traces,
                 usage=usage,
@@ -158,15 +132,6 @@ class AnswerComposer:
             return "no input"
         parts = [f"{key}={value}" for key, value in raw_input.items()]
         return ", ".join(parts[:3])
-
-
-def contains_numeric_token(text: str) -> bool:
-    return bool(NUMERIC_TOKEN.search(text))
-
-
-def text_indicates_unanswerable(text: str) -> bool:
-    lowered = text.lower()
-    return any(marker in lowered for marker in UNANSWERABLE_TEXT_MARKERS)
 
 
 def result_kind(result: ToolResult) -> str:

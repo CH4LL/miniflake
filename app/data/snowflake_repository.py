@@ -36,6 +36,7 @@ from app.data.rollup import (
     rollup_group_expression,
     series_prefix_from_field_id,
 )
+from app.data.search_utils import query_tokens, token_like_clauses
 from app.data.sql_loader import (
     expand_in_list,
     load_sql_template,
@@ -45,6 +46,44 @@ from app.data.sql_loader import (
 
 SQL_DIR = Path(__file__).resolve().parent / "sql"
 BLOCK_GROUP_COLUMN = "CENSUS_BLOCK_GROUP"
+VARIABLE_SEARCHABLE_EXPR = (
+    "LOWER(TABLE_TITLE || ' ' || COALESCE(FIELD_LEVEL_2, '') || ' ' || TABLE_ID)"
+)
+VARIABLE_TITLE_EXPR = "LOWER(TABLE_TITLE)"
+
+
+def build_search_variables_query(
+    metadata_table: str,
+    *,
+    series_ids: list[str],
+    query: str,
+    topic: str | None,
+    limit: int,
+    alias_series_ids: list[str],
+) -> tuple[str, dict[str, Any]]:
+    tokens = query_tokens(query)
+    token_clauses, token_params = token_like_clauses(tokens, VARIABLE_SEARCHABLE_EXPR)
+    title_clauses, _ = token_like_clauses(tokens, VARIABLE_TITLE_EXPR)
+    alias_clause = "OR TABLE_NUMBER IN :in_alias_series_ids" if alias_series_ids else ""
+    sql = render_sql_template(
+        load_sql_template(SQL_DIR / "search_variables.sql"),
+        identifiers={"metadata_table": metadata_table},
+        fragments={
+            "token_clauses": token_clauses,
+            "title_token_clauses": title_clauses,
+            "alias_clause": alias_clause,
+        },
+    )
+    params: dict[str, Any] = {
+        "series_ids": series_ids,
+        "query": query,
+        "topic": topic,
+        "limit": limit,
+        **token_params,
+    }
+    if alias_series_ids:
+        params["alias_series_ids"] = alias_series_ids
+    return sql, params
 
 
 class SnowflakeCensusRepository:
@@ -104,7 +143,37 @@ class SnowflakeCensusRepository:
             },
         )
         rows, provenance = self._execute_query(sql, {}, AggregationMethod.DIRECT)
-        geographies = [
+        return QueryResult(rows=self._geographies_from_rows(rows), provenance=provenance)
+
+    def get_geographies(self, geo_ids: list[str]) -> QueryResult[Geography]:
+        unique_ids = list(dict.fromkeys(geo_ids))
+        if not unique_ids:
+            return QueryResult(
+                rows=[],
+                provenance=self._empty_provenance("get_geographies", {"geo_ids": []}),
+            )
+        vintage = self._settings.acs_vintages[-1]
+        sql = render_sql_template(
+            load_sql_template(SQL_DIR / "get_geographies.sql"),
+            identifiers={
+                "fips_table": self._settings.metadata_fips_codes_table(vintage),
+                "geographic_data_table": self._settings.metadata_geographic_data_table(vintage),
+            },
+            fragments={
+                "state_names_values": self._state_names_values,
+                "nation_geo_id": self._settings.nation_geo_id,
+            },
+        )
+        params = {
+            "geo_ids": unique_ids,
+            "limit": clamp_limit(len(unique_ids), self._settings.snowflake_max_rows),
+        }
+        rows, provenance = self._execute_query(sql, params, AggregationMethod.DIRECT)
+        return QueryResult(rows=self._geographies_from_rows(rows), provenance=provenance)
+
+    @staticmethod
+    def _geographies_from_rows(rows: list[tuple[Any, ...]]) -> list[Geography]:
+        return [
             Geography(
                 geo_id=str(row[0]),
                 name=str(row[1]),
@@ -114,22 +183,17 @@ class SnowflakeCensusRepository:
             )
             for row in rows
         ]
-        return QueryResult(rows=geographies, provenance=provenance)
 
     def search_variables(self, query: str, topic: str | None, limit: int) -> QueryResult[Variable]:
         vintage = self._settings.acs_vintages[-1]
-        sql = render_sql_template(
-            load_sql_template(SQL_DIR / "search_variables.sql"),
-            identifiers={
-                "metadata_table": self._settings.metadata_field_descriptions_table(vintage),
-            },
+        sql, params = build_search_variables_query(
+            self._settings.metadata_field_descriptions_table(vintage),
+            series_ids=self._catalog.series_ids,
+            query=query,
+            topic=topic,
+            limit=clamp_limit(limit, self._settings.snowflake_max_rows),
+            alias_series_ids=self._catalog.series_ids_for_query(query_tokens(query)),
         )
-        params = {
-            "series_ids": self._catalog.series_ids,
-            "query": query,
-            "topic": topic,
-            "limit": clamp_limit(limit, self._settings.snowflake_max_rows),
-        }
         rows, provenance = self._execute_query(sql, params, AggregationMethod.DIRECT)
         variables = [self._variable_from_row(row, vintage) for row in rows]
         return QueryResult(rows=variables, provenance=provenance)

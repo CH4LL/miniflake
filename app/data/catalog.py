@@ -10,6 +10,7 @@ import yaml
 
 from app.data.models import AggregationKind, Variable
 from app.data.rollup import normalize_field_id, series_id_from_field_id
+from app.data.search_utils import DEFAULT_MAX_TOKENS, query_tokens, tokens_overlap
 
 
 @dataclass(frozen=True)
@@ -17,6 +18,17 @@ class CatalogSeriesSpec:
     series_id: str
     topic: str
     aggregation_kind: AggregationKind
+    aliases: tuple[str, ...] = ()
+
+    def matches_tokens(self, tokens: list[str]) -> bool:
+        for alias in self.aliases:
+            alias_tokens = query_tokens(alias, max_tokens=DEFAULT_MAX_TOKENS)
+            if alias_tokens and all(
+                any(tokens_overlap(token, alias_token) for token in tokens)
+                for alias_token in alias_tokens
+            ):
+                return True
+        return False
 
 
 @dataclass(frozen=True)
@@ -27,6 +39,11 @@ class VariableCatalogSpec:
     @property
     def series_ids(self) -> list[str]:
         return [item.series_id for item in self.series]
+
+    def series_ids_for_query(self, tokens: list[str]) -> list[str]:
+        if not tokens:
+            return []
+        return [item.series_id for item in self.series if item.matches_tokens(tokens)]
 
     def topic_for(self, series_id: str) -> str:
         for item in self.series:
@@ -53,6 +70,7 @@ def load_variable_catalog_spec(path: Path) -> VariableCatalogSpec:
             series_id=item["series_id"],
             topic=item["topic"],
             aggregation_kind=AggregationKind(item["aggregation_kind"]),
+            aliases=tuple(str(alias) for alias in item.get("aliases", [])),
         )
         for item in raw["series"]
     ]

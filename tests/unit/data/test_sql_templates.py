@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from app.data.catalog import build_state_names_values_sql, load_state_fips_names
+from app.data.snowflake_repository import build_search_variables_query
 from app.data.sql_loader import expand_in_list, load_sql_template, render_sql_template
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -15,6 +16,7 @@ STATES = load_state_fips_names(PROJECT_ROOT / "fixtures" / "state_fips_names.jso
     [
         "search_geographies.sql",
         "get_geography.sql",
+        "get_geographies.sql",
         "search_variables.sql",
         "get_variable.sql",
         "get_observation_block_group.sql",
@@ -52,25 +54,61 @@ def test_search_geographies_template_renders_with_binds() -> None:
     assert "LIMIT %(limit)s" in rendered
 
 
-def test_search_variables_template_renders_with_in_list() -> None:
-    template = load_sql_template(SQL_DIR / "search_variables.sql")
+def test_get_geographies_template_expands_in_list_everywhere() -> None:
+    template = load_sql_template(SQL_DIR / "get_geographies.sql")
     rendered = render_sql_template(
         template,
-        identifiers={"metadata_table": "2020_METADATA_CBG_FIELD_DESCRIPTIONS"},
-    )
-    sql, params = expand_in_list(
-        rendered,
-        {
-            "series_ids": ["B01003", "B19013"],
-            "query": "population",
-            "topic": None,
-            "limit": 10,
+        identifiers={
+            "fips_table": "2020_METADATA_CBG_FIPS_CODES",
+            "geographic_data_table": "2020_METADATA_CBG_GEOGRAPHIC_DATA",
+        },
+        fragments={
+            "state_names_values": build_state_names_values_sql(STATES[:2]),
+            "nation_geo_id": "US",
         },
     )
-    assert "series_ids_0" in params
+    sql, params = expand_in_list(rendered, {"geo_ids": ["48", "17031"], "limit": 2})
+    assert ":in_geo_ids" not in sql
+    assert sql.count("IN (%(geo_ids_0)s, %(geo_ids_1)s)") == 2
+    assert params["geo_ids_1"] == "17031"
+
+
+def test_search_variables_template_renders_with_in_list() -> None:
+    rendered, params = build_search_variables_query(
+        "2020_METADATA_CBG_FIELD_DESCRIPTIONS",
+        series_ids=["B01003", "B19013"],
+        query="population below poverty line",
+        topic=None,
+        limit=10,
+        alias_series_ids=["B17001"],
+    )
+    sql, expanded = expand_in_list(rendered, params)
+    assert "series_ids_0" in expanded
     assert "IN (%(series_ids_0)s" in sql
     assert "%(query)s" in sql
     assert "LIMIT %(limit)s" in sql
+    assert expanded["token_0"] == "population"
+    assert expanded["token_3"] == "line"
+    where_clause = sql.split("ORDER BY", 1)[0]
+    assert where_clause.count("LIKE '%%' || %(token_") == 4
+    assert "%(token_3)s" in sql.split("ORDER BY", 1)[1]
+    assert "OR TABLE_NUMBER IN (%(alias_series_ids_0)s)" in sql
+    assert expanded["alias_series_ids_0"] == "B17001"
+
+
+def test_search_variables_template_without_aliases_has_no_alias_clause() -> None:
+    rendered, params = build_search_variables_query(
+        "2020_METADATA_CBG_FIELD_DESCRIPTIONS",
+        series_ids=["B01003"],
+        query="of the",
+        topic="Population",
+        limit=5,
+        alias_series_ids=[],
+    )
+    sql, expanded = expand_in_list(rendered, params)
+    assert "alias_series_ids" not in sql
+    assert "LOWER(%(query)s)" in sql
+    assert expanded["topic"] == "Population"
 
 
 def test_observation_block_group_template_renders() -> None:

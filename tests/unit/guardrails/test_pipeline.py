@@ -101,6 +101,20 @@ def test_how_many_people_does_not_clarify_measure() -> None:
     assert decision is None
 
 
+def test_capability_intent_proceeds_with_ungrounded_answer_allowed() -> None:
+    pipeline = _pipeline(_classifier_response("capability"))
+    decision = pipeline.before_agent(Conversation(), "What kind of questions can you answer?")
+    assert decision is not None
+    assert decision.outcome == "proceed"
+    assert decision.ungrounded_answer_allowed is True
+
+
+def test_in_scope_intent_returns_none() -> None:
+    pipeline = _pipeline(_classifier_response("in_scope"))
+    decision = pipeline.before_agent(Conversation(), "What is the population of Texas?")
+    assert decision is None
+
+
 def test_populous_does_not_clarify_measure() -> None:
     pipeline = _pipeline(
         _classifier_response("needs_clarification", missing="measure"),

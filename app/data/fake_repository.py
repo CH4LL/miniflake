@@ -22,7 +22,13 @@ from app.data.rollup import (
     prefix_length,
     resolve_method,
 )
-from app.data.search_utils import match_rank, matches_query
+from app.data.search_utils import (
+    match_rank,
+    matches_all_tokens,
+    matches_query,
+    query_tokens,
+    search_rank,
+)
 
 
 class FakeCensusRepository:
@@ -116,22 +122,41 @@ class FakeCensusRepository:
             ),
         )
 
+    def get_geographies(self, geo_ids: list[str]) -> QueryResult[Geography]:
+        unique_ids = list(dict.fromkeys(geo_ids))
+        rows = [
+            self._geography_by_id[geo_id]
+            for geo_id in unique_ids
+            if geo_id in self._geography_by_id
+        ]
+        return QueryResult(
+            rows=rows,
+            provenance=self._provenance(
+                sql="fake://get_geographies",
+                parameters={"geo_ids": unique_ids},
+                row_count=len(rows),
+                aggregation_method=AggregationMethod.DIRECT,
+            ),
+        )
+
     def search_variables(self, query: str, topic: str | None, limit: int) -> QueryResult[Variable]:
+        tokens = query_tokens(query)
+        alias_series = set(self._catalog.series_ids_for_query(tokens))
         rows = []
         for variable in self._variables:
             if topic and topic.lower() not in variable.topic.lower():
                 continue
-            searchable = " ".join(
-                part
-                for part in (variable.field_id, variable.name, variable.series_id, variable.topic)
-                if part
-            )
-            if matches_query(searchable, query):
+            fields = [variable.field_id, variable.name, variable.series_id]
+            searchable = " ".join(fields)
+            if tokens:
+                matched = matches_all_tokens(searchable, tokens)
+            else:
+                matched = matches_query(searchable, query)
+            if matched or variable.series_id in alias_series:
                 rows.append(variable)
         rows.sort(
             key=lambda variable: (
-                match_rank(variable.field_id, query),
-                match_rank(variable.name, query),
+                search_rank([variable.field_id, variable.name], query, tokens),
                 variable.field_id,
             )
         )

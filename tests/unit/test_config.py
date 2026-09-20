@@ -200,6 +200,24 @@ def test_agent_and_anthropic_settings_defaults(isolated_env: None, apply_env) ->
     )
     assert settings.api_request_timeout_seconds > settings.agent_budget_seconds
     assert settings.agent_llm_retry_enabled is True
+    assert settings.agent_max_search_calls >= 1
+    assert settings.agent_max_search_calls < settings.agent_max_iterations
+
+
+def test_agent_max_search_calls_from_env(isolated_env: None, apply_env) -> None:
+    apply_env(
+        {
+            "SNOWFLAKE_ACCOUNT": "TEST-ACCOUNT",
+            "SNOWFLAKE_USER": "TEST_USER",
+            "SNOWFLAKE_ROLE": "TEST_ROLE",
+            "SNOWFLAKE_WAREHOUSE": "TEST_WH",
+            "SNOWFLAKE_DATABASE": "TEST_DB",
+            "SNOWFLAKE_PRIVATE_KEY_PATH": "/tmp/test_key.p8",
+            "AGENT_MAX_SEARCH_CALLS": "2",
+        }
+    )
+    settings = Settings(_env_file=None)
+    assert settings.agent_max_search_calls == 2
 
 
 def test_inner_deadline_uses_remaining_api_window_minus_handoff(

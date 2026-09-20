@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     anthropic_thinking: str = Field(default="adaptive", alias="ANTHROPIC_THINKING")
     anthropic_timeout_seconds: float = Field(default=30.0, alias="ANTHROPIC_TIMEOUT_SECONDS")
     agent_max_iterations: int = Field(default=8, alias="AGENT_MAX_ITERATIONS")
+    agent_max_search_calls: int = Field(default=4, ge=1, alias="AGENT_MAX_SEARCH_CALLS")
     agent_budget_seconds: float = Field(default=90.0, alias="AGENT_BUDGET_SECONDS")
     agent_min_seconds_per_llm_call: float = Field(
         default=5.0, alias="AGENT_MIN_SECONDS_PER_LLM_CALL"

@@ -73,18 +73,17 @@ class RankGeographiesTool:
             limit=limit,
         )
         provenance.append(ranking.provenance)
-        rankings: list[RankedGeography] = []
-        for observation in ranking.rows:
-            geography_result = repository.get_geography(observation.geo_id)
-            provenance.append(geography_result.provenance)
-            name = geography_result.rows[0].name if geography_result.rows else observation.geo_id
-            rankings.append(
-                RankedGeography(
-                    geo_id=observation.geo_id,
-                    name=name,
-                    value=observation.value,
-                )
+        names = repository.get_geographies([observation.geo_id for observation in ranking.rows])
+        provenance.append(names.provenance)
+        name_by_id = {geography.geo_id: geography.name for geography in names.rows}
+        rankings = [
+            RankedGeography(
+                geo_id=observation.geo_id,
+                name=name_by_id.get(observation.geo_id, observation.geo_id),
+                value=observation.value,
             )
+            for observation in ranking.rows
+        ]
         return Success(
             data=RankGeographiesSuccess(
                 field_id=variable.field_id,

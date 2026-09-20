@@ -2,7 +2,7 @@
 
 Miniflake is a data-grounded chat agent that answers natural-language questions about the US population using American Community Survey data served from Snowflake. This document describes the system's components and their boundaries. Which components exist at any moment is tracked in [docs/roadmap.md](docs/roadmap.md); the rationale behind each choice is in [docs/adr/](docs/adr/).
 
-**Current implementation (S0–S7):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory with lifespan warm-up), `app/logging.py` (structured JSON logging to stderr, plus a local JSON lines file when `LOG_FILE` is set), `app/warmup.py` (Snowflake connection warm-up), `app/api/` (`GET /api/health`, `POST /api/login`, `GET /api/session`, `POST /api/chat`, `POST /api/conversations/reset`, demo auth middleware, error envelope, request-id middleware, static file serving), `web/` (vanilla JS chat page with provenance expander and login form), `app/conversation/` (`ConversationStore` protocol, `InMemoryConversationStore`, `ConversationService`, `ResolvedContext`, history windowing), `app/guardrails/` (deterministic pre-checks, intent classifier, YAML patterns and templates, `GuardrailPipeline`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic, `connection.py`), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop`, file-based system prompt with recently-discussed context, `AnswerComposer`, per-turn transcript, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/setup_secrets.sh`, `scripts/deploy.sh`, `scripts/smoke_deployed.py`, `deploy/cloudrun.env`, fixtures under `fixtures/`, Dockerfile, CI workflow.
+**Current implementation (S0–S8):** `app/config.py` (pydantic-settings), `app/main.py` (FastAPI app factory with lifespan warm-up), `app/logging.py` (structured JSON logging to stderr, plus a local JSON lines file when `LOG_FILE` is set), `app/warmup.py` (Snowflake connection warm-up), `app/api/` (`GET /api/health`, `POST /api/login`, `GET /api/session`, `POST /api/chat`, `POST /api/conversations/reset`, demo auth middleware, error envelope, request-id middleware, static file serving), `web/` (vanilla JS chat page with provenance expander and login form), `app/conversation/` (`ConversationStore` protocol, `InMemoryConversationStore`, `ConversationService`, `ResolvedContext`, history windowing), `app/guardrails/` (deterministic pre-checks, intent classifier, YAML patterns and templates, `GuardrailPipeline`), `app/data/` (`CensusRepository` protocol, `SnowflakeCensusRepository`, `FakeCensusRepository`, SQL templates, rollup logic, token-based variable search with catalog aliases, batch geography lookup, `connection.py`), `app/tools/` (six typed tools, `ToolRegistry`, discriminated `ToolResult` outcomes, LLM descriptions in `descriptions.yaml`), `app/llm/` (`LLMClient` protocol, `AnthropicLLMClient`, `FakeLLM`, strict-schema sanitization), `app/agent/` (`AgentLoop` with per-turn search-call budget, file-based system prompt with recently-discussed context, `AnswerComposer` with typed outcome rules, per-turn transcript, error templates), `scripts/chat_cli.py`, `scripts/discover_schema.py`, `scripts/setup_secrets.sh`, `scripts/deploy.sh`, `scripts/smoke_deployed.py`, `deploy/cloudrun.env`, `evals/` (golden set, runner with offline re-scoring, scoring, reports), fixtures under `fixtures/`, Dockerfile, CI workflow.
 
 ## Principles
 
@@ -76,10 +76,10 @@ app/
   llm/                 LLMClient protocol, anthropic client, fake
   tools/               one file per tool + registry
   data/                CensusRepository protocol, snowflake impl, fake impl, sql templates, catalog
-  guardrails/          pre-checks, classifier, output checks
+  guardrails/          pre-checks, classifier, pipeline, templates
 web/                   index.html, app.js, styles.css
 tests/                 unit/, component/, e2e/, live/
-evals/                 questions.yaml, run_evals.py, reports/
+evals/                 questions.yaml, run_evals.py, loader, scoring, reference, report, rescore, reports/
 fixtures/              catalog snapshots, sample rows for fakes
 scripts/               schema discovery, catalog snapshot, deploy
 docs/                  requirements, roadmap, specs, ADRs, decision log
@@ -108,7 +108,11 @@ The agent works over the [SafeGraph US Open Census listing](https://app.snowflak
 | `count` | Direct read | `SUM` across block groups; provenance records `aggregation_method: sum` |
 | `median`, `rate` | Direct read | Not supported; returns `UnsupportedRequest` |
 
-A snapshot of the variable catalog (with `aggregation_kind` tags) and supported geographies is stored under `fixtures/` and drives both the fake repository and the tool descriptions given to the LLM.
+A snapshot of the variable catalog (with `aggregation_kind` tags) and supported geographies is stored under `fixtures/` and drives both the fake repository and the tool descriptions given to the LLM. `fixtures/variable_catalog_spec.yaml` names the curated series, their topic and aggregation kind, and optional `aliases` (phrases a user may say for the series).
+
+**Variable search** (`search_variables` in both repositories, helpers in `app/data/search_utils.py`): the query is split into significant tokens (stopwords dropped, count capped) and a field matches when every token appears in its title, field label or id, in any order. A series whose alias tokens all overlap the query tokens (shared stem) is included regardless of wording. The SQL template receives generated parametrised `LIKE` clauses and an optional alias `IN` list; the fake applies the same rule in Python and the contract tests hold the two to parity.
+
+**Batch geography names**: `get_geographies(geo_ids)` resolves names for many geo ids in one query; `rank_geographies` and `compare` use it instead of one lookup per row.
 
 ## Tool layer
 
@@ -131,7 +135,9 @@ Each tool returns a discriminated `ToolResult` with a `kind` field:
 
 ## Agent core
 
-`AgentLoop` in `app/agent/loop.py` builds the system prompt from `app/agent/prompts/system.md` plus rendered tool, geography, topic, vintage, and recently-discussed summaries; calls the LLM with tool schemas from `ToolRegistry`; dispatches tool calls; echoes assistant content verbatim (including opaque thinking blocks); records a per-turn transcript for conversation storage; and stops on `end_turn`, iteration cap, or wall-clock budget. `AnswerComposer` in `app/agent/composer.py` classifies the outcome (`answer`, `clarify`, `unanswerable`, `error`) from tool result kinds and model text. `scripts/chat_cli.py` runs a single turn against Snowflake and Anthropic for manual iteration.
+`AgentLoop` in `app/agent/loop.py` builds the system prompt from `app/agent/prompts/system.md` plus rendered tool, geography, topic, vintage, and recently-discussed summaries; calls the LLM with tool schemas from `ToolRegistry`; dispatches tool calls; echoes assistant content verbatim (including opaque thinking blocks); records a per-turn transcript for conversation storage; and stops on `end_turn`, iteration cap, or wall-clock budget. Catalog searches (`find_variable`, `find_geography`) are counted per turn; past `AGENT_MAX_SEARCH_CALLS` the loop does not dispatch the call and instead records an `unsupported_request` result telling the model to explain what could not be found. The system prompt states both the time and the search budget.
+
+`AnswerComposer` in `app/agent/composer.py` labels the outcome from typed signals only, never from the wording of the reply: timeout, iteration cap and LLM errors are `error`, as is a trailing `tool_error`. With data-tool traces (`get_value`, `rank_geographies`, `compare`, `get_trend`) any `success` is `answer`, all `ambiguous` is `clarify`, otherwise `unanswerable`. With catalog-only traces, any `ambiguous` is `clarify`, otherwise `unanswerable`. A turn with no tool traces is `unanswerable`, unless the guardrail pipeline marked it a capability turn (`ungrounded_answer_allowed`), in which case it is `answer` with empty provenance. `scripts/chat_cli.py` runs a single turn against Snowflake and Anthropic for manual iteration.
 
 ## Conversation and API
 
@@ -142,10 +148,26 @@ Each tool returns a discriminated `ToolResult` with a `kind` field:
 `GuardrailPipeline` in `app/guardrails/pipeline.py` composes two layers before the agent loop:
 
 1. **Pre-checks** (`prechecks.py`, `patterns.yaml`): length and character sanity, then regex patterns for prompt injection, SQL execution requests, and personal-data requests. Matches return a templated refusal without an LLM or data call.
-2. **Intent classifier** (`classifier.py`): one structured-output call to the cheaper model (`anthropic_classifier_model`) with the last two turns as plain-text context. Off-topic and harmful input is refused; questions missing geography or an underspecified measure return a clarification template. Omitted vintage is not a clarification: the pipeline lets the agent default to the latest ACS 5-year release. Classifier errors fail open to the agent loop and are logged.
+2. **Intent classifier** (`classifier.py`): one structured-output call to the cheaper model (`anthropic_classifier_model`) with the last two turns as plain-text context. Intents are `in_scope`, `capability`, `needs_clarification`, `off_topic` and `harmful`. Off-topic and harmful input is refused; questions missing geography or an underspecified measure return a clarification template. `capability` (what can you answer, where does the data come from) proceeds to the agent with a `proceed` decision that carries `ungrounded_answer_allowed`, so the composer labels the no-tool reply `answer`. Omitted vintage is not a clarification: the pipeline lets the agent default to the latest ACS 5-year release. Classifier errors fail open to the agent loop and are logged.
 
 Numeric grounding relies on tool-only data access and the system prompt; answers are not post-checked against tool payloads. Refusal and clarification texts live in `app/guardrails/templates.yaml`. Guardrail short-circuit turns are persisted as user plus assistant messages. Adjustable thresholds and toggles live in configuration (`GUARDRAIL_*`).
 
 ## Testing
 
-Four layers: unit tests with no network, component tests with `FakeCensusRepository` and `FakeLLM`, API end-to-end tests via `TestClient` with fakes injected, and opt-in live suites against Snowflake and Anthropic. A golden question set in `evals/questions.yaml` defines expected behaviour classes and is run against the deployed stack. See [docs/testing-strategy.md](docs/testing-strategy.md).
+Four layers: unit tests with no network, component tests with `FakeCensusRepository` and `FakeLLM`, API end-to-end tests via `TestClient` with fakes injected, and opt-in live suites against Snowflake and Anthropic. See [docs/testing-strategy.md](docs/testing-strategy.md).
+
+## Evaluation harness
+
+`evals/` measures the deployed agent against the golden set and is itself tested against the app with fakes.
+
+| Module | Role |
+| :--- | :--- |
+| `questions.yaml` | Golden set: expected outcome per item plus optional provenance, value check, clarify slot, no-data-call constraint and `max_tool_calls` |
+| `loader.py` | Validates the set; groups follow-ups with their parent so a group shares one conversation |
+| `run_evals.py` | Logs in, resets once per group, posts each question, scores the raw `/api/chat` payload; filters by item, category or expected outcome; optional worker pool with one HTTP client each; `--rescore` mode |
+| `scoring.py` | `ChatObservation` to `ItemResult` with typed failures (`outcome`, `clarify_slot`, `no_data_call`, `provenance`, `tool_budget`, `value`, `latency`); the observation and golden note are kept on the result |
+| `reference.py` | Reference values from the repository for value checks |
+| `report.py` | JSON and Markdown report: header (target, git SHA, filters, workers, re-score source), summary, per-item results with notes, failures grouped by kind |
+| `rescore.py` | Re-scores a saved JSON report against the current golden set and rules offline, reusing saved reference values |
+
+The HTTP client and question set are injectable, so `tests/e2e/test_run_evals.py` runs the whole runner in-process against the app with fakes.

@@ -13,9 +13,21 @@ from app.llm.client import LLMClient
 from app.llm.errors import LLMError
 from app.llm.types import Message, TextBlock, ToolResultBlock, ToolSchema, ToolUseBlock, Usage
 from app.tools.registry import ToolRegistry
-from app.tools.results import Success, ToolError
+from app.tools.results import Success, ToolError, ToolResult, UnsupportedRequest
 
 logger = logging.getLogger(__name__)
+
+SEARCH_TOOL_NAMES = frozenset({"find_variable", "find_geography"})
+
+
+def search_budget_exhausted(max_search_calls: int) -> UnsupportedRequest:
+    return UnsupportedRequest(
+        reason=(
+            f"Search budget of {max_search_calls} catalog searches for this turn is used up. "
+            "Do not search again. Explain what could not be found in the catalog and suggest "
+            "how the user could rephrase, or answer with the data already retrieved."
+        )
+    )
 
 
 class AgentLoop:
@@ -42,6 +54,7 @@ class AgentLoop:
         deadline: float,
         *,
         context_facts: list[str] | None = None,
+        ungrounded_answer_allowed: bool = False,
     ) -> AgentAnswer:
         system = build_system_prompt(
             self._registry,
@@ -63,6 +76,7 @@ class AgentLoop:
         usage = Usage()
         stop_reason: Literal["end_turn", "timeout", "iteration_cap", "llm_error"] | None = None
         text_blocks: list[str] = []
+        search_calls = 0
 
         for _ in range(self._settings.agent_max_iterations):
             remaining = deadline - self._clock()
@@ -123,7 +137,19 @@ class AgentLoop:
                     timed_out = True
                     break
                 started = self._clock()
-                result = self._registry.dispatch(block.name, block.input, self._repository)
+                result: ToolResult
+                if block.name in SEARCH_TOOL_NAMES:
+                    search_calls += 1
+                    if search_calls > self._settings.agent_max_search_calls:
+                        result = search_budget_exhausted(self._settings.agent_max_search_calls)
+                        logger.info(
+                            "search budget exhausted",
+                            extra={"tool_name": block.name, "search_calls": search_calls},
+                        )
+                    else:
+                        result = self._registry.dispatch(block.name, block.input, self._repository)
+                else:
+                    result = self._registry.dispatch(block.name, block.input, self._repository)
                 duration_ms = (self._clock() - started) * 1000
                 kind = result_kind(result)
                 trace_data = None
@@ -171,6 +197,7 @@ class AgentLoop:
             tool_traces=tool_traces,
             provenance=provenance,
             usage=usage,
+            ungrounded_answer_allowed=ungrounded_answer_allowed,
         )
         answer.transcript = transcript
         return answer

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from evals.numbers import extract_numbers
+from evals.numeric import extract_numbers
 
 
 def test_extract_numbers_handles_millions_and_percentages() -> None:

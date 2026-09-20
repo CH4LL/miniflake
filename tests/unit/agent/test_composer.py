@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from app.agent.composer import AnswerComposer, ToolCallTrace, contains_numeric_token
+from app.agent.composer import AnswerComposer, ToolCallTrace
 from app.data.models import AggregationMethod, Provenance
 from app.llm.types import Usage
 
@@ -125,62 +125,62 @@ def test_end_turn_with_only_unavailable_is_unanswerable() -> None:
     assert answer.outcome == "unanswerable"
 
 
-def test_end_turn_without_tools_and_limitation_text_is_unanswerable() -> None:
-    answer = _composer().compose(
-        stop_reason="end_turn",
-        text_blocks=["CBSA geography isn't supported in this dataset."],
-        tool_traces=[],
-        provenance=[],
-        usage=Usage(),
-    )
-    assert answer.outcome == "unanswerable"
+def test_end_turn_without_tools_is_unanswerable_regardless_of_wording() -> None:
+    for text in (
+        "CBSA geography isn't supported in this dataset.",
+        "IQ is not a metric collected in the ACS.",
+        "Here is a helpful explanation without any limitation phrase.",
+        "The population is 30 million.",
+    ):
+        answer = _composer().compose(
+            stop_reason="end_turn",
+            text_blocks=[text],
+            tool_traces=[],
+            provenance=[],
+            usage=Usage(),
+        )
+        assert answer.outcome == "unanswerable", text
+        assert answer.text == text
+        assert answer.provenance == []
 
 
-def test_end_turn_without_tools_and_without_numbers_is_answer() -> None:
+def test_capability_turn_without_tools_is_answer() -> None:
     answer = _composer().compose(
         stop_reason="end_turn",
         text_blocks=["I answer US census questions from SafeGraph ACS block-group data."],
         tool_traces=[],
         provenance=[],
         usage=Usage(),
+        ungrounded_answer_allowed=True,
     )
     assert answer.outcome == "answer"
     assert answer.provenance == []
 
 
-def test_end_turn_without_tools_and_with_numbers_is_answer() -> None:
+def test_capability_flag_does_not_override_tool_driven_outcomes() -> None:
     answer = _composer().compose(
         stop_reason="end_turn",
-        text_blocks=["The population is 30 million."],
-        tool_traces=[],
+        text_blocks=["1990 is not available."],
+        tool_traces=[
+            ToolCallTrace(
+                name="get_value",
+                input={"vintage": 1990},
+                result_kind="period_unavailable",
+                duration_ms=1.0,
+            )
+        ],
         provenance=[],
         usage=Usage(),
-    )
-    assert answer.outcome == "answer"
-    assert answer.text == "The population is 30 million."
-
-
-def test_end_turn_without_tools_allows_years_and_five_year_label() -> None:
-    answer = _composer().compose(
-        stop_reason="end_turn",
-        text_blocks=["Values are ACS 5-year estimates for 2019 and 2020."],
-        tool_traces=[],
-        provenance=[],
-        usage=Usage(),
-    )
-    assert answer.outcome == "answer"
-    assert "2019" in answer.text
-
-
-def test_end_turn_without_tools_limitation_text_stays_unanswerable() -> None:
-    answer = _composer().compose(
-        stop_reason="end_turn",
-        text_blocks=["Median income at county level is not supported in this dataset."],
-        tool_traces=[],
-        provenance=[],
-        usage=Usage(),
+        ungrounded_answer_allowed=True,
     )
     assert answer.outcome == "unanswerable"
+
+
+def test_composer_has_no_prose_markers() -> None:
+    import app.agent.composer as composer_module
+
+    assert not hasattr(composer_module, "UNANSWERABLE_TEXT_MARKERS")
+    assert not hasattr(composer_module, "text_indicates_unanswerable")
 
 
 def test_timeout_iteration_and_llm_error_use_error_templates() -> None:
@@ -233,8 +233,3 @@ def test_tool_error_as_last_result_is_error() -> None:
     )
     assert answer.outcome == "error"
     assert "tool template" in answer.text
-
-
-def test_contains_numeric_token() -> None:
-    assert contains_numeric_token("about 30 million")
-    assert not contains_numeric_token("I answer census questions.")

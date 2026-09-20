@@ -4,9 +4,11 @@ find_geography: >
   Use within_state to narrow county searches to a specific state.
 
 find_variable: >
-  Search the curated ACS variable catalog by name or field id. Returns ranked
-  candidates from one series, ambiguous results when candidates span different
-  series, or not-found with topic suggestions.
+  Search the curated ACS variable catalog by name or field id. Every significant
+  word in the query must match (word order does not matter), and common phrasings
+  such as "poverty line" or "educated" map to their series. Use a few key nouns,
+  not the full question. Returns ranked candidates from one series, ambiguous
+  results when candidates span different series, or not-found with suggestions.
 
 get_value: >
   Look up a single ACS estimate for a field at a geography. Vintage is optional

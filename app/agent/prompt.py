@@ -38,4 +38,5 @@ def build_system_prompt(
         vintages=settings.acs_vintages,
         context_facts=context_facts,
         response_budget_seconds=int(settings.response_budget_seconds),
+        max_search_calls=settings.agent_max_search_calls,
     )

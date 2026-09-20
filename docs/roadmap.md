@@ -6,7 +6,7 @@ Status values: `todo`, `in-progress`, `done`, `cut`. Update the status field and
 
 Total budget: 24 h. Estimates below sum to 22.5 h plus 1.5 h buffer.
 
-Last updated: 2026-09-19 (S8 in progress).
+Last updated: 2026-09-20 (S8 in progress; only the manual live run remains).
 
 ## Stages
 
@@ -76,9 +76,11 @@ Exit criteria: the public URL answers a golden lookup question end to end within
 
 ### S8 Evaluation and hardening
 
-Goal: run the full golden set against the deployed stack, record results under `evals/reports/`, fix the highest-impact failures, measure latency distribution and cost, list unresolved edge cases for the reflection.
+Goal: make the eval harness cheap to iterate on without live runs (raw observations stored, offline re-scoring, in-process self-test), fix the deterministic causes behind the baseline report's failures with tests against fakes, curate the golden set, and record one honest live measurement for the reflection. The spec was superseded on 2026-09-20 (decision log); live runs are a measurement, not a development loop.
 
-Exit criteria: report committed; all `refuse` and `unanswerable` items pass; pass rate for `answer` and `clarify` items recorded honestly with per-item notes.
+Exit criteria: suite green including the runner self-test; report from current `main` committed; strict-gate status recorded and every failure listed in the testing strategy with a reason; roadmap, changelog, architecture, testing strategy, reflection and decision log updated.
+
+Remaining: the single manual live run (deploy `main`, `run_evals.py --strict`, commit the report, triage into accepted failures), after which S8 is marked done.
 
 ### S9 Documentation and reflection
 

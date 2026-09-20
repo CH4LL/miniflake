@@ -79,10 +79,13 @@ class ConversationService:
         started = self._clock()
         with lock:
             conversation = self._load_or_create(conversation.id)
+            ungrounded_answer_allowed = False
             if self._guardrails is not None:
                 guarded = self._guardrails.before_agent(conversation, normalized)
-                if guarded is not None:
+                if guarded is not None and guarded.short_circuits:
                     return self._short_circuit_turn(conversation, normalized, guarded, started)
+                if guarded is not None:
+                    ungrounded_answer_allowed = guarded.ungrounded_answer_allowed
 
             user_message = Message(role="user", content=[TextBlock(text=normalized)])
             conversation.messages.append(user_message)
@@ -97,6 +100,7 @@ class ConversationService:
                 history,
                 deadline,
                 context_facts=conversation.context.as_facts(),
+                ungrounded_answer_allowed=ungrounded_answer_allowed,
             )
             latency_ms = (self._clock() - started) * 1000
 

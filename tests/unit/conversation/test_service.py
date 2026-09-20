@@ -26,6 +26,7 @@ class RecordingLoop:
     def __init__(self) -> None:
         self.deadline: float | None = None
         self.messages: list[Message] | None = None
+        self.ungrounded_answer_allowed: bool | None = None
 
     def run(
         self,
@@ -33,10 +34,20 @@ class RecordingLoop:
         deadline: float,
         *,
         context_facts: list[str] | None = None,
+        ungrounded_answer_allowed: bool = False,
     ) -> AgentAnswer:
         self.messages = messages
         self.deadline = deadline
+        self.ungrounded_answer_allowed = ungrounded_answer_allowed
         return AgentAnswer(text="ok", outcome="answer")
+
+
+class ProceedGuardrails:
+    def __init__(self, decision: GuardrailDecision | None) -> None:
+        self._decision = decision
+
+    def before_agent(self, conversation: Conversation, message: str) -> GuardrailDecision | None:
+        return self._decision
 
 
 class SlowPassThroughGuardrails:
@@ -76,6 +87,37 @@ def _service(
         guardrails=SlowPassThroughGuardrails(clock, classifier_delay),
         clock=clock,
     )
+
+
+def test_proceed_decision_forwards_ungrounded_flag_to_loop() -> None:
+    settings = _settings()
+    loop = RecordingLoop()
+    service = ConversationService(
+        settings,
+        InMemoryConversationStore(settings),
+        loop,  # type: ignore[arg-type]
+        guardrails=ProceedGuardrails(
+            GuardrailDecision(outcome="proceed", text="", ungrounded_answer_allowed=True)
+        ),
+        clock=FakeClock(),
+    )
+    turn = service.handle_message(None, "What kind of questions can you answer?")
+    assert loop.ungrounded_answer_allowed is True
+    assert turn.answer.outcome == "answer"
+
+
+def test_none_decision_runs_loop_grounded() -> None:
+    settings = _settings()
+    loop = RecordingLoop()
+    service = ConversationService(
+        settings,
+        InMemoryConversationStore(settings),
+        loop,  # type: ignore[arg-type]
+        guardrails=ProceedGuardrails(None),
+        clock=FakeClock(),
+    )
+    service.handle_message(None, "What is the population of Texas?")
+    assert loop.ungrounded_answer_allowed is False
 
 
 def test_deadline_is_computed_after_guardrails_from_remaining_api_time() -> None:

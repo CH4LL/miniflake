@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 ALLOWED_CATEGORIES = frozenset(
     {
@@ -59,6 +59,7 @@ class EvalItem(BaseModel):
     notes: str | None = None
     status: Literal["active", "retired"] = "active"
     expected_missing: Literal["geography", "measure", "generic"] | None = None
+    max_tool_calls: int | None = Field(default=None, ge=0)
 
     @model_validator(mode="after")
     def validate_item_rules(self) -> EvalItem:

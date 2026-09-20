@@ -45,15 +45,16 @@ To disable auth for local development, set `DEMO_AUTH_ENABLED=false` in your `.e
 The agent answers US census questions backed by SafeGraph ACS 5-year block-group data.
 
 - **Supported geographies:** block group (native), and nation, state, and county for **count** measures rolled up from block groups.
-- **Median and rate measures** (income, age, poverty rate, and similar) are available only at block-group level.
+- **Median measures** (median income, median age, median rent, and similar) are available only at block-group level. Poverty is stored as counts, so poverty shares at state and county level are derived from summed counts.
 - **Place and CBSA** levels are not supported in the current dataset.
 - **Specify a year** when you need a particular ACS vintage; otherwise the latest available vintage is used.
 - **Follow-up questions** reuse the last resolved geography, variable, and vintage from earlier turns in the same session.
+- **Name the measure plainly** ("poverty line", "median household income", "how educated"): the catalog search matches every significant word in any order and knows common phrasings. A measure the catalog does not hold is reported as unavailable after a bounded number of searches.
 - The agent refuses to invent numbers. If it cannot look up a value, it explains why and may ask for clarification.
 
 ## What the agent will and will not answer
 
-**Will answer:** US population and demographic questions backed by SafeGraph ACS block-group data — lookups, comparisons, rankings, and trends within supported geography levels and vintages.
+**Will answer:** US population and demographic questions backed by SafeGraph ACS block-group data — lookups, comparisons, rankings, and trends within supported geography levels and vintages — and questions about its own coverage and data source.
 
 **Will ask for clarification** when a question is plausible but missing a geography or an underspecified measure (for example, "How many people live in Washington?" or "What is the income in Ohio?"). Omitted year uses the latest ACS 5-year vintage; "population" means total population.
 
@@ -63,7 +64,7 @@ The agent answers US census questions backed by SafeGraph ACS 5-year block-group
 - Harmful or discriminatory requests, or requests for personal information about individuals.
 - Prompt-injection and SQL-execution attempts caught by pre-check patterns.
 
-**Ungrounded answers:** if the agent produces numbers that cannot be verified against tool results, the response is replaced with an explanation and the provenance panel still shows what was fetched.
+**Outcome badges without data:** a reply that needed no data lookup is badged `unanswerable` (the agent explained a limit or could not find the measure), except for questions about the agent itself ("What can you answer?", "Where does the data come from?", "Which years do you cover?"), which are badged `answer` with an empty provenance panel.
 
 Role-play overrides embedded in otherwise valid census questions are answered from data when possible; the agent ignores instructions to invent figures or reveal secrets.
 

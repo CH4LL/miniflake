@@ -149,7 +149,7 @@ def test_period_unavailable_end_turn_is_unanswerable() -> None:
     assert answer.text == "1990 is outside the available ACS vintages."
 
 
-def test_numeric_answer_without_tools_passes_through() -> None:
+def test_numeric_answer_without_tools_is_unanswerable() -> None:
     llm = FakeLLM(
         [
             LLMResponse(
@@ -160,8 +160,9 @@ def test_numeric_answer_without_tools_passes_through() -> None:
         ]
     )
     answer = _loop(llm).run(_user_message("Population of Texas?"), deadline=time.monotonic() + 60)
-    assert answer.outcome == "answer"
+    assert answer.outcome == "unanswerable"
     assert answer.text == "The population of Texas is 30 million."
+    assert answer.provenance == []
 
 
 def test_capability_answer_without_tools_is_answer_with_empty_provenance() -> None:
@@ -183,10 +184,134 @@ def test_capability_answer_without_tools_is_answer_with_empty_provenance() -> No
         ]
     )
     answer = _loop(llm).run(
-        _user_message("What kind of questions can you answer?"), deadline=time.monotonic() + 60
+        _user_message("What kind of questions can you answer?"),
+        deadline=time.monotonic() + 60,
+        ungrounded_answer_allowed=True,
     )
     assert answer.outcome == "answer"
     assert answer.provenance == []
+
+
+class RecordingRegistry:
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+        self.dispatched: list[str] = []
+
+    def schemas(self) -> Any:
+        return self._inner.schemas()
+
+    def dispatch(self, name: str, *args: Any, **kwargs: Any) -> Any:
+        self.dispatched.append(name)
+        return self._inner.dispatch(name, *args, **kwargs)
+
+
+def _recording_loop(llm: FakeLLM, settings: Settings) -> tuple[AgentLoop, RecordingRegistry]:
+    registry = RecordingRegistry(default_registry(settings))
+    loop = AgentLoop(
+        llm,
+        registry,  # type: ignore[arg-type]
+        FakeCensusRepository(settings=settings),
+        settings,
+    )
+    return loop, registry
+
+
+def _find_variable(query: str, tool_id: str) -> LLMResponse:
+    return LLMResponse(
+        content=[ToolUseBlock(id=tool_id, name="find_variable", input={"query": query})],
+        stop_reason="tool_use",
+        usage=Usage(),
+    )
+
+
+def test_search_calls_beyond_cap_are_not_dispatched_and_turn_is_unanswerable() -> None:
+    settings = _settings(AGENT_MAX_SEARCH_CALLS=2)
+    llm = FakeLLM(
+        [
+            _find_variable("zebra ownership", "t1"),
+            _find_variable("zebra density", "t2"),
+            _find_variable("zebras per household", "t3"),
+            LLMResponse(
+                content=[TextBlock(text="The dataset has no zebra measure.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    loop, registry = _recording_loop(llm, settings)
+    answer = loop.run(
+        _user_message("How many zebras are owned in Texas?"),
+        deadline=time.monotonic() + 60,
+    )
+    assert registry.dispatched == ["find_variable", "find_variable"]
+    assert [trace.name for trace in answer.tool_calls] == ["find_variable"] * 3
+    assert answer.tool_calls[2].result_kind == "unsupported_request"
+    assert answer.outcome == "unanswerable"
+    assert answer.text == "The dataset has no zebra measure."
+    _system, messages, _tools, _timeout = llm.calls[3]
+    third_tool_result = messages[-1].content[0]
+    assert "search budget" in third_tool_result.content.lower()
+
+
+def test_search_calls_within_cap_are_dispatched_normally() -> None:
+    settings = _settings(AGENT_MAX_SEARCH_CALLS=3)
+    llm = FakeLLM(
+        [
+            _find_variable("B01003", "t1"),
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="t2",
+                        name="get_value",
+                        input={"field_id": "B01003e1", "geo_id": "48"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            LLMResponse(
+                content=[TextBlock(text="Texas population is available from ACS.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    loop, registry = _recording_loop(llm, settings)
+    answer = loop.run(_user_message("Population of Texas?"), deadline=time.monotonic() + 60)
+    assert registry.dispatched == ["find_variable", "get_value"]
+    assert answer.outcome == "answer"
+    assert [trace.result_kind for trace in answer.tool_calls] == ["success", "success"]
+
+
+def test_geography_and_variable_searches_share_one_budget() -> None:
+    settings = _settings(AGENT_MAX_SEARCH_CALLS=2)
+    llm = FakeLLM(
+        [
+            LLMResponse(
+                content=[
+                    ToolUseBlock(
+                        id="t1",
+                        name="find_geography",
+                        input={"query": "Texas", "level": "State"},
+                    )
+                ],
+                stop_reason="tool_use",
+                usage=Usage(),
+            ),
+            _find_variable("zebra ownership", "t2"),
+            _find_variable("zebra density", "t3"),
+            LLMResponse(
+                content=[TextBlock(text="No zebra measure exists.")],
+                stop_reason="end_turn",
+                usage=Usage(),
+            ),
+        ]
+    )
+    loop, registry = _recording_loop(llm, settings)
+    answer = loop.run(_user_message("How many zebras in Texas?"), deadline=time.monotonic() + 60)
+    assert registry.dispatched == ["find_geography", "find_variable"]
+    assert answer.tool_calls[2].result_kind == "unsupported_request"
+    assert answer.outcome == "unanswerable"
 
 
 def test_past_deadline_skips_llm_and_returns_timeout_error() -> None:

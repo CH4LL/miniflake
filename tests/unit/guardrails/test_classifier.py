@@ -118,11 +118,33 @@ def test_classifier_prompt_population_is_a_complete_measure() -> None:
     assert "complete measure" in lowered
 
 
-def test_classifier_prompt_meta_capability_is_in_scope() -> None:
+def test_classifier_prompt_meta_capability_has_its_own_intent() -> None:
     lowered = CLASSIFY_SYSTEM_PROMPT.lower()
+    assert "capability:" in lowered
     assert "what can you answer" in lowered
     assert "where does the data come from" in lowered
     assert "not off_topic" in lowered
+
+
+def test_classify_parses_capability_intent() -> None:
+    llm = FakeLLM([_classifier_response("capability")])
+    classifier = IntentClassifier(llm, _settings())
+    decision = classifier.classify("What kind of questions can you answer?", context_excerpt="")
+    assert decision.intent == "capability"
+    assert decision.failed_open is False
+
+
+def test_classifier_tool_schema_lists_capability_intent() -> None:
+    classifier = IntentClassifier(FakeLLM([]), _settings())
+    enum = classifier._tool.input_schema["properties"]["intent"]["enum"]
+    assert "capability" in enum
+
+
+def test_low_confidence_capability_is_not_downgraded() -> None:
+    llm = FakeLLM([_classifier_response("capability", confidence=0.4)])
+    classifier = IntentClassifier(llm, _settings())
+    decision = classifier.classify("Where does your data come from?", context_excerpt="")
+    assert decision.intent == "capability"
 
 
 def test_classifier_prompt_named_out_of_range_years_stay_in_scope() -> None:

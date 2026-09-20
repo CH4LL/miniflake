@@ -13,9 +13,8 @@ FROM {{metadata_table}}
 WHERE TABLE_NUMBER IN :in_series_ids
 AND UPPER(FIELD_LEVEL_1) = 'ESTIMATE'
 AND (
-    LOWER(TABLE_TITLE) LIKE '%%' || LOWER(%(query)s) || '%%'
-    OR LOWER(COALESCE(FIELD_LEVEL_2, '')) LIKE '%%' || LOWER(%(query)s) || '%%'
-    OR LOWER(TABLE_ID) LIKE '%%' || LOWER(%(query)s) || '%%'
+    {{token_clauses}}
+    {{alias_clause}}
 )
 AND (%(topic)s IS NULL OR LOWER(TABLE_TOPICS) LIKE '%%' || LOWER(%(topic)s) || '%%')
 ORDER BY
@@ -25,7 +24,9 @@ ORDER BY
         WHEN LOWER(TABLE_TITLE) = LOWER(%(query)s) THEN 2
         WHEN LOWER(TABLE_ID) LIKE LOWER(%(query)s) || '%%' THEN 3
         WHEN LOWER(COALESCE(FIELD_LEVEL_2, '')) LIKE LOWER(%(query)s) || '%%' THEN 4
-        ELSE 5
+        WHEN LOWER(TABLE_TITLE) LIKE '%%' || LOWER(%(query)s) || '%%' THEN 5
+        WHEN {{title_token_clauses}} THEN 6
+        ELSE 7
     END,
     TABLE_ID
 LIMIT %(limit)s

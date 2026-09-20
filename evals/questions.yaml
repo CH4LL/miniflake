@@ -1,6 +1,6 @@
 # Golden question set. Behavioural definition of the agent.
 #
-# Schema (validated by tests/unit/evals/test_loader.py once S8 lands):
+# Schema (validated by tests/unit/evals/test_loader.py):
 #   version: integer, bumped when the schema changes
 #   items[]:
 #     id:            unique, stable; never reused
@@ -18,16 +18,22 @@
 #                    vintage for direct repository reference (hybrid: explicit when set,
 #                    otherwise derived from the agent's first successful get_value call)
 #     follows:       (follow_up only) id of the parent item; run in the same conversation
-#     expect_no_data_call: true when the data layer must not be touched (refuse items)
+#     expect_no_data_call: true when the data layer must not be touched (refuse and
+#                    capability items)
 #     expected_missing: (clarify only) geography | measure | generic; canned template
 #                      for a different slot is a fail
+#     max_tool_calls: (optional) upper bound on tool calls in the turn; more is a
+#                    tool_budget failure (pins the search-thrash fix)
 #     notes:         analyst guidance on what a pass looks like
 #     status:        active | retired
+#
+# Outcome labelling: a turn that ends without any tool call is `unanswerable` unless
+# the classifier marked it `capability`, in which case it is `answer`.
 #
 # Dataset: SafeGraph US Open Census (ACS 5-year, block group grain).
 # Count fields roll up to nation/state/county via SUM; median/rate fields only at BlockGroup.
 
-version: 4
+version: 5
 
 items:
   # ---------- Direct lookups (counts at rolled-up levels) ----------
@@ -80,8 +86,13 @@ items:
   - id: L07
     category: lookup
     question: What percentage of people in Mississippi live below the poverty line?
-    expected: unanswerable
-    notes: Poverty rate at state level cannot be rolled up from block-group values; answer explains why.
+    expected: answer
+    provenance:
+      series: B17001
+      level: State
+      aggregation_method: sum
+    max_tool_calls: 5
+    notes: B17001 holds counts (total, below poverty) that roll up to State via SUM; a pass fetches both counts and states the derived share, or states the counts. No value check because the share is derived. Previously thrashed on six find_variable calls; the alias "poverty line" and the search budget pin the fix.
     status: active
 
   # ---------- Direct lookups (medians at block group — native grain) ----------
@@ -240,7 +251,8 @@ items:
     question: How educated is Massachusetts?
     expected: clarify
     expected_missing: measure
-    notes: Educational attainment has many levels; agent asks which threshold.
+    max_tool_calls: 3
+    notes: Educational attainment has many levels; agent asks which threshold. Previously thrashed on six find_variable calls.
     status: active
 
   # ---------- Missing variable ----------
@@ -248,13 +260,15 @@ items:
     category: missing_variable
     question: What is the average IQ in Nebraska?
     expected: unanswerable
-    notes: Not an ACS measure; answer says the dataset does not contain it.
+    max_tool_calls: 3
+    notes: Not an ACS measure; answer says the dataset does not contain it. Answering from the topic list without a tool call is also a pass.
     status: active
 
   - id: MV02
     category: missing_variable
     question: How many people in Georgia own a dog?
     expected: unanswerable
+    max_tool_calls: 3
     notes: Not in the dataset; no guess.
     status: active
 
@@ -262,7 +276,16 @@ items:
     category: missing_variable
     question: What is the crime rate in Chicago?
     expected: unanswerable
-    notes: Crime is not a Census ACS topic.
+    max_tool_calls: 3
+    notes: Crime is not a Census ACS topic; classifier must not refuse it as off-topic.
+    status: active
+
+  - id: MV04
+    category: missing_variable
+    question: What share of households in Colorado have a home library?
+    expected: unanswerable
+    max_tool_calls: 5
+    notes: Census-sounding measure that is not in the curated catalog. The search budget stops repeated find_variable attempts; the answer names topics that are available.
     status: active
 
   # ---------- Unavailable period ----------
@@ -437,4 +460,12 @@ items:
     question: Where does your data come from?
     expected: answer
     notes: Names SafeGraph US Open Census Data and Neighborhood Insights listing on Snowflake Marketplace and ACS 5-year block-group estimates; no numbers.
+    status: active
+
+  - id: M03
+    category: meta
+    question: Which years do you have data for?
+    expected: answer
+    expect_no_data_call: true
+    notes: Capability question; classifier routes it as capability so the composer labels the no-tool reply answer. Lists the ACS 5-year vintages from the system prompt without a tool call.
     status: active

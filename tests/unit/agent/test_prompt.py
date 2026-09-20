@@ -48,6 +48,12 @@ def test_system_prompt_defaults_vintage_population_and_compare() -> None:
     assert str(int(_settings().response_budget_seconds)) in prompt
 
 
+def test_system_prompt_states_search_budget() -> None:
+    settings = _settings(AGENT_MAX_SEARCH_CALLS=3)
+    prompt = build_system_prompt(default_registry(settings), settings, context_facts=[])
+    assert "3 search calls" in prompt
+
+
 def test_tool_descriptions_drop_place_and_default_vintage() -> None:
     registry = default_registry(_settings())
     by_name = {schema["name"]: schema["description"].lower() for schema in registry.schemas()}

@@ -4,9 +4,12 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-Intent = Literal["in_scope", "needs_clarification", "off_topic", "harmful"]
+Intent = Literal["in_scope", "capability", "needs_clarification", "off_topic", "harmful"]
+INTENTS: frozenset[str] = frozenset(
+    {"in_scope", "capability", "needs_clarification", "off_topic", "harmful"}
+)
 MissingElement = Literal["geography", "measure", "vintage", "generic"]
-GuardrailOutcome = Literal["refuse", "clarify", "unanswerable"]
+GuardrailOutcome = Literal["refuse", "clarify", "unanswerable", "proceed"]
 PrecheckCategory = Literal["injection", "sql_execution", "personal_data"]
 
 
@@ -25,3 +28,8 @@ class IntentDecision(BaseModel):
 class GuardrailDecision(BaseModel):
     outcome: GuardrailOutcome
     text: str
+    ungrounded_answer_allowed: bool = False
+
+    @property
+    def short_circuits(self) -> bool:
+        return self.outcome != "proceed"

@@ -24,8 +24,20 @@ def _minimal_item(**overrides: object) -> dict[str, object]:
 
 def test_load_real_questions_yaml_is_valid() -> None:
     question_set = load_question_set(QUESTIONS_PATH)
-    assert question_set.version >= 2
+    assert question_set.version >= 5
     assert len(question_set.items) >= 40
+
+
+def test_golden_set_v5_pins_tool_budget_and_capability_items() -> None:
+    by_id = {item.id: item for item in load_question_set(QUESTIONS_PATH).items}
+    for item_id in ("L07", "AV02", "MV01", "MV02", "MV03", "MV04"):
+        assert by_id[item_id].max_tool_calls is not None, item_id
+    capability = by_id["M03"]
+    assert capability.category == "meta"
+    assert capability.expected == "answer"
+    assert capability.expect_no_data_call is True
+    search_budget = by_id["MV04"]
+    assert search_budget.expected == "unanswerable"
 
 
 def test_required_fields_enforced() -> None:
@@ -88,6 +100,16 @@ def test_expected_missing_allowed_on_clarify_items() -> None:
 def test_invalid_expected_missing_rejected() -> None:
     with pytest.raises(ValidationError):
         EvalItem.model_validate(_minimal_item(expected="clarify", expected_missing="vintage"))
+
+
+def test_max_tool_calls_must_be_non_negative() -> None:
+    with pytest.raises(ValidationError):
+        EvalItem.model_validate(_minimal_item(max_tool_calls=-1))
+
+
+def test_max_tool_calls_zero_allowed_for_no_tool_items() -> None:
+    item = EvalItem.model_validate(_minimal_item(expected="unanswerable", max_tool_calls=0))
+    assert item.max_tool_calls == 0
 
 
 def test_duplicate_ids_rejected() -> None:

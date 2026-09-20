@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from app.config import Settings
-from app.guardrails.types import IntentDecision
+from app.guardrails.types import INTENTS, IntentDecision
 from app.llm.client import LLMClient
 from app.llm.errors import LLMError
 from app.llm.types import Message, TextBlock, ToolSchema, ToolUseBlock
@@ -16,7 +16,7 @@ CLASSIFY_TOOL_NAME = "classify_intent"
 CLASSIFY_SYSTEM_PROMPT = """You classify user messages for a US census data assistant.
 
 Return classify_intent with:
-- intent: in_scope, needs_clarification, off_topic, or harmful
+- intent: in_scope, capability, needs_clarification, off_topic, or harmful
 - reason: brief internal rationale
 - confidence: 0 to 1
 - missing: geography, measure, vintage, generic, or none
@@ -30,8 +30,11 @@ in_scope: US population or demographic questions, including:
 - projection requests — the agent will explain coverage
 - ambiguous place names without place-level data — the agent will explain limits
 - follow-ups that rely on prior conversation context
-- capability questions such as "what can you answer?" and "where does the data come from"
-  (these are not off_topic)
+
+capability: questions about the assistant itself rather than about data values, such as
+"what can you answer?", "where does the data come from", "which years do you cover",
+"what geographies do you support". These are not off_topic and need no data lookup.
+A question that asks for a figure is in_scope, not capability.
 
 needs_clarification: in-scope census question that omits geography or a genuinely
 underspecified measure, or names an ambiguous supported geography. Examples: no place
@@ -43,7 +46,8 @@ this dataset cannot resolve.
 
 off_topic: unrelated requests (poems, coding help, non-US geography).
 Do not mark census-topic questions as off_topic just because the measure is absent (IQ, pets)
-or because the topic is crime rather than demographics. Capability questions are in_scope.
+or because the topic is crime rather than demographics. Capability questions are capability,
+not off_topic.
 
 harmful: personal data requests, discriminatory framing, or dangerous instructions.
 Crime-rate questions are in_scope, not harmful, when the user asks for statistics.
@@ -85,7 +89,7 @@ class IntentClassifier:
                 "properties": {
                     "intent": {
                         "type": "string",
-                        "enum": ["in_scope", "needs_clarification", "off_topic", "harmful"],
+                        "enum": sorted(INTENTS),
                     },
                     "reason": {"type": "string"},
                     "confidence": {"type": "number"},
@@ -137,7 +141,7 @@ class IntentClassifier:
 
     def _from_payload(self, payload: dict[str, Any]) -> IntentDecision | None:
         intent = payload.get("intent")
-        if intent not in {"in_scope", "needs_clarification", "off_topic", "harmful"}:
+        if intent not in INTENTS:
             return None
         missing = payload.get("missing")
         if missing in {"none", None, ""}:
