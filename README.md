@@ -1,4 +1,5 @@
 # Miniflake
+<small>*Built in 24 hours as a take-home exercise, with AI coding agents doing most of the implementation against specs and tests I wrote. Scope cuts and known limits are listed in REFLECTION.md.*</small>
 
 A data-grounded chat agent that answers natural-language questions about the US population from American Community Survey data on the Snowflake Marketplace. The model never writes SQL and never answers from memory: it selects typed query tools, the tools run parametrized SQL against Snowflake, and every figure is returned with the query that produced it. Questions the data cannot answer are declared unanswerable rather than approximated.
 
