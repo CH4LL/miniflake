@@ -4,6 +4,11 @@ All notable changes to this project. One entry per completed stage or feature; n
 
 ## Unreleased
 
+### Deployment: scale to zero by default
+
+- `deploy/cloudrun.env`: `CLOUD_RUN_MIN_INSTANCES=0`, `CLOUD_RUN_CPU_ALWAYS_ALLOCATED=false`; `scripts/deploy.sh` passes `--no-cpu-boost --cpu-throttling` in that mode so a redeploy clears the previous boost setting.
+- ARCHITECTURE, USER-GUIDE, README and ADR-006 updated for cold starts and conversation loss on scale-down; USER-GUIDE demo-auth wording corrected (page loads without auth, wrong passphrase shows "Invalid passphrase").
+
 ### S9: Documentation and reflection
 
 - README: shipped-state status, example questions by eval category, full configuration reference (names and purposes), interpretations of ambiguous requirements.

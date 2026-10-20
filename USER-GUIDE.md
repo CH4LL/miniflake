@@ -10,7 +10,7 @@ The agent is available over the web chat page, HTTP API, and command-line runner
 
 When deployed to Cloud Run, open https://miniflake-eowbm7u4ua-uk.a.run.app (or the URL printed by `scripts/deploy.sh`). Log in with the demo passphrase, available from the author on request. The chat page and API behave the same as locally; cookies are marked secure on HTTPS.
 
-Cloud Run keeps one warm instance during the review window. Conversations are stored in memory on that instance and are lost if it restarts. The server runs a Snowflake warm-up query on startup so the first question after deploy completes within the response budget.
+Cloud Run scales the service to zero when it is idle and runs at most one instance. Conversations are stored in memory on that instance and are lost when it scales down or restarts. The first question after an idle period waits for the container to start and for the Snowflake warehouse to resume, so it can be noticeably slower; the server runs a Snowflake warm-up query on startup to speed up the questions that follow.
 
 ## Using the chat page
 
@@ -29,14 +29,14 @@ The chat page provides:
 
 ## Logging in to the demo
 
-When `DEMO_AUTH_ENABLED` is true (the default), the chat page and protected API routes require a passphrase.
+When `DEMO_AUTH_ENABLED` is true (the default), the chat and conversation API routes require a passphrase. The page itself loads without one and shows a passphrase login form until you log in.
 
 1. Open the application URL in a browser.
 2. Enter the demo passphrase (configured as `DEMO_PASSPHRASE` in the environment).
 3. Click **Log in**. A signed, HTTP-only cookie is set for the session.
 4. You can now send messages and use **New conversation**.
 
-Failed logins return a generic error without revealing whether the passphrase was wrong. The health endpoint (`/api/health`) stays open without authentication.
+A wrong passphrase returns an "Invalid passphrase" error and the login form stays on screen. The health endpoint (`/api/health`) stays open without authentication.
 
 To disable auth for local development, set `DEMO_AUTH_ENABLED=false` in your `.env` file.
 

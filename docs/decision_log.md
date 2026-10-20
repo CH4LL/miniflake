@@ -288,3 +288,11 @@ Why: The core roadmap through S9 (never-cut documentation) consumed the remainin
 Dropped: A second `CensusRepository` over public-data native Place/CBSA tables; restoring those eval items to `answer`.
 User-visible consequence: city and metro questions stay unanswerable; the agent explains the supported geography levels instead of looking up Denver, Springfield as a place, Seattle metro, or metro rankings.
 Refs: specs/S10-public-data-supplement.md, roadmap.md, ADR-003, evals L05 L06 R03 AG01
+
+## Default deployment scales to zero
+Stage: post-S9 | Type: change
+What: `deploy/cloudrun.env` sets minimum instances to 0 and CPU always allocated to false; `scripts/deploy.sh` then deploys with `--no-cpu-boost --cpu-throttling`. Maximum instances stays at 1.
+Why: The review window is over; an always-on instance costs money while idle.
+Dropped: Keeping a pinned warm instance with always-allocated CPU and startup boost (still available by editing `deploy/cloudrun.env`).
+User-visible consequence: the first question after an idle period pays the container cold start and warehouse resume; conversations are lost when the instance scales down.
+Refs: deploy/cloudrun.env, scripts/deploy.sh, ADR-006

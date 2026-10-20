@@ -35,7 +35,7 @@ The chat page loads after login. The [USER-GUIDE.md](USER-GUIDE.md) describes th
 - Several topics the catalog lists (poverty, housing, health insurance, commuting) have no populated fields in the share; the agent searches within a bounded budget and then says so.
 - A year given as "2020" means the 2020 ACS 5-year estimate, not the decennial count; an omitted year means the latest vintage.
 
-**Review-window limits.** One warm Cloud Run instance, in-memory conversations (lost on restart), a shared passphrase rather than user accounts. Complex lookups may exceed the 60-second target; a longer hard timeout lets them finish instead of cutting them off (see interpretations below).
+**Review-window limits.** One Cloud Run instance at most, scaling to zero when idle (the first question after an idle period pays a cold start), in-memory conversations (lost on scale-down or restart), a shared passphrase rather than user accounts. Complex lookups may exceed the 60-second target; a longer hard timeout lets them finish instead of cutting them off (see interpretations below).
 
 ## Architecture in five minutes
 

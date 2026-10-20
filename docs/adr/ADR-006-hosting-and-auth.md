@@ -29,3 +29,7 @@ Cloud Run from a Docker image built with `uv`, secrets in Secret Manager, struct
 - Costs are bounded: an idle warm instance plus per-request LLM and warehouse usage.
 - The passphrase gate is not a user model; the README states this and names the production alternative.
 - Cloud Run region is chosen near the Snowflake account region to keep query latency low.
+
+## Amendment: scale to zero by default
+
+After the review window the default deployment no longer pins a warm instance: minimum instances is zero, CPU is allocated only during requests, and the startup CPU boost is off. Maximum instances stays at one, so ADR-005's single in-memory store still holds. Idle cost drops to zero; in exchange the first request after an idle period pays the container cold start and warehouse resume, and conversations are lost on scale-down. The warm configuration is restored by setting `CLOUD_RUN_MIN_INSTANCES=1` and `CLOUD_RUN_CPU_ALWAYS_ALLOCATED=true` in `deploy/cloudrun.env`.

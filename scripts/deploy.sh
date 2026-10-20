@@ -39,7 +39,7 @@ CPU_FLAGS=()
 if [[ "${CLOUD_RUN_CPU_ALWAYS_ALLOCATED}" == "true" ]]; then
   CPU_FLAGS=(--cpu-boost --no-cpu-throttling)
 else
-  CPU_FLAGS=(--cpu-throttling)
+  CPU_FLAGS=(--no-cpu-boost --cpu-throttling)
 fi
 
 IMAGE_TAG="${IMAGE_TAG:-latest}"
